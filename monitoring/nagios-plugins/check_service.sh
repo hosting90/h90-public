@@ -1,11 +1,14 @@
 #!/bin/bash
 
-
-ret=$(systemctl is-active "$1")
-if [ "$?" -eq 0 ]; then
-        echo "$1 is $ret"
-        exit 0
-else
-        echo "$1 is $ret"
-        exit 2
-fi
+retcode=0
+for i in "$@"; do
+	active=$(systemctl is-active "$i")
+	if [ "$?" -eq 0 ]; then
+	        echo -n "$i is $active; "
+	else
+	        echo -n "$i is $active; "
+	        retcode=2
+	fi
+done
+echo
+exit $retcode
