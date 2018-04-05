@@ -1,0 +1,26 @@
+#!/bin/ksh
+
+if [ "$1" = "config" ]; then
+        maxcons=$(cat /etc/exim/exim.conf | egrep ^smtp_accept_max\ | awk '{print $3}')
+        warn=$(($maxcons*70/100))
+        crit=$(($maxcons*90/100))
+        echo "graph_title Exim open connections"
+        echo "graph_args --base 1000 -l 0"
+        echo "graph_vlabel open concurrent connections"
+        echo "graph_category exim"
+        echo "established.label Established"
+        echo "established.draw LINE2"
+        echo "total.label Total"
+        echo "total.draw LINE2"
+        echo "established.warning $warn"
+        echo "established.critical $crit"
+        exit 0
+fi
+
+#conns=$(lsof -i -n -P | egrep ^exim | grep ESTABLISHED | awk '{print $2}' | uniq | wc -l)
+conns=$(netstat -n -p -t | awk '{print $4 " " $6}' | egrep \:25\ )
+total=$(echo -n "$conns" | wc -l)
+established=$(echo -n "$conns" | grep ESTABLISHED | wc -l)
+echo "established.value $established"
+echo "total.value $total"
+exit 0
