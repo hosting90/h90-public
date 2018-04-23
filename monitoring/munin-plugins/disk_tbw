@@ -1,0 +1,44 @@
+#!/usr/bin/bash
+#%# family=auto
+#%# capabilities=autoconf
+
+for disk in `ls /sys/block/ | grep sd`; do
+	if grep -q "0" /sys/block/$disk/queue/rotational; then
+		DRIVES="$DRIVES $disk"
+	fi
+done
+
+if [ "$1" == "autoconf" ]; then
+	if [ "$DRIVES" == "" ]; then
+		echo "no (all disks rotational)"
+	else
+		echo "yes"
+	fi
+
+	exit 0
+fi
+
+if [ "$1" == "config" ]; then
+	echo "graph_title TB Written on SSD drives"
+	echo "graph_vlabel TBW"
+	echo "graph_category disk"
+	echo "graph_info This graph shows total TB written as seen by the SSD firmware. This value is significant for drive durability and eligibilty for warranty."
+
+	for drive in $DRIVES; do
+		echo "tbw_$drive.label /dev/$drive"
+		echo "tbw_$drive.min 0"
+	done
+
+	exit 0
+fi
+
+for drive in $DRIVES; do
+	v=`smartctl -a /dev/$drive | egrep '^241'|awk '{print $10}'`
+	if [ "$v" = "" ]; then
+		val=U
+	else
+		r=`printf %013d $(($v*512)) | rev`
+		val=`echo ${r:9:3}.${r:12} | rev`
+	fi
+	echo tbw_$drive.value $val
+done
