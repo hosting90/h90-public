@@ -18,6 +18,7 @@ def count_backend(criticals, backend_name):
 
 def main(args):
 	critical_level = 0.4 #default percentage of offline servers for critical
+	haproxy_socket = '/var/run/haproxy.sock'
 	critical_frontends = []
 	critical_backends = []
 	critical_servers = []
@@ -27,16 +28,18 @@ def main(args):
 		for opt, arg in opts:
 			if opt in ('-c', '--climit'):
 				critical_level = float(arg)
+			if opt in ('-s', '--socket'):
+				haproxy_socket = arg
 
 	except:
-		print 'wrong arguments'
+		print 'Incorrect arguments.'
 		return UNKNOWN
 
 	if critical_level > 1:
 		critical_level = critical_level / 100
 
 
-	hap = haproxy.HAProxy(socket_file='/var/run/haproxy.sock')
+	hap = haproxy.HAProxy(socket_file=haproxy_socket)
 	frontend_list = hap.frontends()
 	backend_list = hap.backends()
 
@@ -61,21 +64,21 @@ def main(args):
 	message = []
 
 	for frontend in critical_frontends:
-		message.append('frontend ' + frontend[0] + ' has status: ' + frontend[1])
+		message.append( frontend[0] + ' frontend is in ' + frontend[1] + ' state.')
 
 	for backend in critical_backends:
 		if backend[1] == 'UP':
-			message.append('backend ' + backend[0] + ' has more than ' + str(critical_level * 100) + ' % of servers not up')
+			message.append( backend[0] + ' backend has >' + str(critical_level * 100) + '\% of servers down.')
 		else:
-			message.append('backend ' + backend[0] + ' has status ' + backend[1])
+			message.append( backend[0] + ' backend is in ' + backend[1] ' state.')
 
 	if len(message) == 0:
 		if len(critical_servers) == 0:
-			print 'all frontends, backends and servers are up and running'
+			print 'All frontends, backends, and attached servers are running and enabled.'
 			return OK
 		else:
 			for server in critical_servers:
-				message.append('server ' + server[1] + ' of backend ' + server[0] + ' has status ' + server[2])
+				message.append(server[1] + ' server of ' + server[0] + ' backend is in ' + server[2] + ' state.')
 			
 			print '; '.join(message)
 			return WARNING
