@@ -22,6 +22,8 @@ for i in $(cat /etc/exim/routelist |awk \{'print $2'\} | sort | uniq); do
 		fi
 	fi
 done
+if [ "$exitcode" -eq 0 ]; then
+	echo -n "All smtp routes reachable on port 25"
+fi
 echo
-
 exit $exitcode
