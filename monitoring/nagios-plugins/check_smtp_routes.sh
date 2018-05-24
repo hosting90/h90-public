@@ -13,10 +13,10 @@ for i in $(cat /etc/exim/routelist |awk \{'print $2'\} | sort | uniq); do
 	if grep -q -i "$i" "$1"; then
 		continue
 	fi
-	retval=$(/usr/lib64/nagios/plugins/check_tcp -H "$i" -p 25 -t5)
+	retval=$(/usr/lib64/nagios/plugins/check_tcp -H "$i" -p 25 -t10)
 	retcode=$?
 	if [ $retcode -ne 0 ]; then
-		echo -n "$retval; "
+		echo -n "$i: $retval; "
 		if [ $exitcode -lt $retcode ]; then
 			exitcode=$retcode
 		fi
