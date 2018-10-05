@@ -3,12 +3,14 @@
 retcode=0
 for i in "$@"; do
 	active=$(systemctl is-active "$i")
-	if [ "$?" -eq 0 ]; then
-	        echo -n "$i is $active; "
-	else
+	if [ "$?" -ne 0 ]; then
 	        echo -n "$i is $active; "
 	        retcode=2
 	fi
 done
+
+if [ "$retcode" -eq 0 ]; then
+	echo -n "all services are active"
+fi
 echo
 exit $retcode
