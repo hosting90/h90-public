@@ -70,7 +70,7 @@ def main(args):
 		if backend[1] == 'UP':
 			message.append( backend[0] + ' backend has >' + str(critical_level * 100) + '\% of servers down.')
 		else:
-			message.append( backend[0] + ' backend is in ' + backend[1] ' state.')
+			message.append( backend[0] + ' backend is in ' + backend[1] + ' state.')
 
 	if len(message) == 0:
 		if len(critical_servers) == 0:
