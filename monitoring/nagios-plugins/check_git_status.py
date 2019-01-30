@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import sys
-PYTHON_MODULES = ['argparse','subprocess','re','os']
+PYTHON_MODULES = ['argparse','subprocess','os']
 for module in PYTHON_MODULES:
 	try:
 		locals()[module] = __import__(str(module))
