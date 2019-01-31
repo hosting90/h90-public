@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import sys
-PYTHON_MODULES = ['argparse','subprocess','os']
+PYTHON_MODULES = ['argparse', 'subprocess', 'os', 'time']
 for module in PYTHON_MODULES:
 	try:
 		locals()[module] = __import__(str(module))
@@ -15,6 +15,7 @@ CRITICAL = 2
 UNKNOWN = 3
 
 def main(args):
+	os.mkdir('/var/tmp/git_status')
 	status = 0
 	out_of_date = []
 	# check python version
@@ -31,19 +32,30 @@ def main(args):
 		os.chdir(arguments.directory[0])
 	except:
 		print 'No such file or directory!'
-		return CRITICAL
+		return UNKNOWN
 
 	subprocess.call(['git', 'remote', 'update'])
 
 	for branch in arguments.branch:
+		branch_file = '/var/tmp/git_status/.' + branch
 		process = subprocess.Popen(['git', 'diff', 'origin/' + branch, '--stat'], stdin=None, stdout = subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
 		stdout, stderr = process.communicate()
 
 		if not stdout.strip():
-			status += OK
+			try:
+				os.remove(branch_file)
+			except:
+				pass
 		else:
+			with open(branch_file, 'a'): pass
+
+		if not os.path.exists(branch_file):
+			status += OK
+		if (time.time() - os.stat(branch_file).st_mtime) > 600:
 			status += CRITICAL
 			out_of_date.append(branch)
+		else:
+			status += OK
 
 	if status == OK:
 		print 'All branches are up to date.'
