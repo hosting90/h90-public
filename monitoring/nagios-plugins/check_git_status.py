@@ -15,7 +15,10 @@ CRITICAL = 2
 UNKNOWN = 3
 
 def main(args):
-	os.mkdir('/var/tmp/git_status')
+	try:
+		os.mkdir('/var/tmp/git_status')
+	except:
+		pass
 	status = 0
 	out_of_date = []
 	# check python version
