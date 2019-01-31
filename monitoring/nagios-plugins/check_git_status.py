@@ -54,7 +54,7 @@ def main(args):
 
 		if not os.path.exists(branch_file):
 			status += OK
-		if (time.time() - os.stat(branch_file).st_mtime) > 600:
+		elif (time.time() - os.stat(branch_file).st_mtime) > 600:
 			status += CRITICAL
 			out_of_date.append(branch)
 		else:
