@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import sys, subprocess, getopt
+import sys, subprocess
 
 OK = 0
 WARNING = 1
