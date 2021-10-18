@@ -6,4 +6,4 @@ if [ "$1" == "" ]; then
 fi
 
 SCRIPT=`grep -i "script_path" $1 | cut -d "=" -f2`
-eval python3 $SCRIPT $@
+eval python2 $SCRIPT $@
