@@ -56,7 +56,7 @@ def main(args):
 	if check_type == 'supervisor':
 		if exec_retcode != 0:
 			ret_code = CRITICAL
-			ret_msg = f'docker exec {cmd} returned nonzero code {exec_retcode}'
+			ret_msg = f'docker exec {cmd} returned nonzero code {exec_retcode} with output: {exec_output}'
 		else:
 			for line in exec_output.decode().split('\n'):
 				if len(line.split()) > 1:
