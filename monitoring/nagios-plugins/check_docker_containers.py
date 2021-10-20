@@ -18,9 +18,9 @@ def main(args):
 	ret_msg = ''
 
 	for container in client.containers.list():
-		if any(re.fullmatch(arg, container.name) for arg in args.split()):
+		if any(re.fullmatch(arg, container.name) for arg in args):
 			container_status[container.name] = container.attrs['State']['Status']
-	for container in args.split():
+	for container in args:
 		if not any(re.fullmatch(arg, container) for arg in container_status.keys()):
 			ret_code = UNKNOWN
 			ret_msg += f'{container} not present in docker container status list {str(container_status)}!!!\n'
