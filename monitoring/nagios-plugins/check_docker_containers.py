@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import sys, docker
+import sys, docker, re
 
 OK = 0
 WARNING = 1
@@ -18,17 +18,18 @@ def main(args):
 	ret_msg = ''
 
 	for container in client.containers.list():
-		if container.name in args:
+		if any(re.fullmatch(arg, container.name) for arg in args.split()):
 			container_status[container.name] = container.attrs['State']['Status']
-	for container in args:
-		if container not in container_status:
+	for container in args.split():
+		if not any(re.fullmatch(arg, container) for arg in container_status.keys()):
 			ret_code = UNKNOWN
-			ret_msg += f'{container} not present in supervisorctl status output!!!\n'
-		else:
-			if container_status[container] != 'running':
-				if ret_code < CRITICAL:
-					ret_code = CRITICAL
-				ret_msg += f'{container} is {container_status[container]}!!!\n'
+			ret_msg += f'{container} not present in docker container status list {str(container_status)}!!!\n'
+
+	for container in container_status:
+		if container_status[container] != 'running':
+			if ret_code < CRITICAL:
+				ret_code = CRITICAL
+			ret_msg += f'{container} is {container_status[container]}!!!\n'
 
 	if ret_msg == '':
 		ret_msg = 'All containers are running'
