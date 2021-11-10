@@ -16,7 +16,7 @@ def main(args):
 	container_status = {}
 	ret_code = OK
 	ret_msg = ''
-	if args is None:
+	if len(args) == 0:
 		args = ['.*']
 
 	for container in client.containers.list():
