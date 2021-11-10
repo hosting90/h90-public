@@ -19,7 +19,7 @@ def main(args):
 	if len(args) == 0:
 		args = ['.*']
 
-	for container in client.containers.list():
+	for container in client.containers.list(all=True):
 		if any(re.fullmatch(arg, container.name) for arg in args):
 			container_status[container.name] = container.attrs['State']['Status']
 	for container in args:
