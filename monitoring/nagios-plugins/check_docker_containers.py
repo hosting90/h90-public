@@ -16,12 +16,14 @@ def main(args):
 	container_status = {}
 	ret_code = OK
 	ret_msg = ''
+	if args is None:
+		args = ['.*']
 
 	for container in client.containers.list():
 		if any(re.fullmatch(arg, container.name) for arg in args):
 			container_status[container.name] = container.attrs['State']['Status']
 	for container in args:
-		if not any(re.fullmatch(arg, container) for arg in container_status.keys()):
+		if not any(re.fullmatch(container, arg) for arg in container_status.keys()):
 			ret_code = UNKNOWN
 			ret_msg += f'{container} not present in docker container status list {str(container_status)}!!!\n'
 
