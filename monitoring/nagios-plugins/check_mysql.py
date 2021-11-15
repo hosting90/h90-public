@@ -36,7 +36,7 @@ def main(args):
   return UNKNOWN
 
 if __name__ == '__main__':
-  if len(sys.argv) is 2:
+  if len(sys.argv) == 2:
     sys.exit(main(sys.argv[1:]))
   else:
     usage()
