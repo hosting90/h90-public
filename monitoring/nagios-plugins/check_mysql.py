@@ -16,7 +16,7 @@ def usage():
 def main(args):
   try:
     p = Popen(
-      ['/usr/bin/sudo', 'docker', 'exec', '-i', 'c-' + sys.argv[1], 'mysqladmin', 'ping'],
+      ['/usr/bin/sudo', 'docker', 'exec', '-u', 'root', '-i', 'c-' + sys.argv[1], 'mysqladmin', 'ping'],
       stdout=PIPE,
       stderr=PIPE
     )
