@@ -22,6 +22,7 @@ def main(args):
     )
     for line in p.stderr.readlines():
       print('UNKNOWN:', line.decode('utf-8'), end='')
+      return UNKNOWN
   except Exception as err:
     print('UNKNOWN:', f'{err}')
     return UNKNOWN
