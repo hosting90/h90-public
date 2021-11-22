@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentParser
 from ftplib import FTP, FTP_TLS
 from imaplib import IMAP4, IMAP4_SSL
+from poplib import POP3, POP3_SSL
 from smtplib import SMTP, SMTP_SSL
 from subprocess import Popen, PIPE
 import socket
@@ -35,7 +36,7 @@ def ftp(exit):
     f = FTP(args.hostname)
     f.login(user = p_file.get('f_user'), passwd = p_file.get('f_pass'))
     f.quit()
-    print(f'OK: FTP login successfull')
+    print(f'OK: FTP login successful')
     return OK
   except:
     print(f'WARNING: FTP service was not authorized')
@@ -46,7 +47,7 @@ def ftps(exit):
     f = FTP_TLS(args.hostname)
     f.login(user = p_file.get('f_user'), passwd = p_file.get('f_pass'))
     f.quit()
-    print(f'OK: FTPs login successfull')
+    print(f'OK: FTPs login successful')
     return OK
   except:
     print(f'WARNING: FTPs service was not authorized')
@@ -57,7 +58,7 @@ def imap(exit):
     i = IMAP4(args.hostname)
     i.login(p_file.get('e_user'), p_file.get('e_pass'))
     i.logout()
-    print(f'OK: IMAP login successfull')
+    print(f'OK: IMAP login successful')
     return OK
   except:
     print(f'WARNING: IMAP service was not authorized')
@@ -68,10 +69,34 @@ def imaps(exit):
     i = IMAP4_SSL(args.hostname)
     i.login(p_file.get('e_user'), p_file.get('e_pass'))
     i.logout()
-    print(f'OK: IMAPs login successfull')
+    print(f'OK: IMAPs login successful')
     return OK
   except:
     print(f'WARNING: IMAPs service was not authorized')
+    return CRITICAL
+
+def pop3(exit):
+  try:
+    p = POP3(args.hostname)
+    p.user(p_file.get('e_user'))
+    p.pass_(p_file.get('e_pass'))
+    p.quit()
+    print(f'OK: POP3 login successful')
+    return OK
+  except:
+    print(f'WARNING: POP3 service was not authorized')
+    return CRITICAL
+
+def pop3s(exit):
+  try:
+    p = POP3_SSL(args.hostname)
+    p.user(p_file.get('e_user'))
+    p.pass_(p_file.get('e_pass'))
+    p.quit()
+    print(f'OK: POP3s login successful')
+    return OK
+  except:
+    print(f'WARNING: POP3s service was not authorized')
     return CRITICAL
 
 def smtp(exit):
@@ -79,7 +104,7 @@ def smtp(exit):
     s = SMTP(args.hostname)
     s.login(p_file.get('e_user'), p_file.get('e_pass'))
     s.quit()
-    print(f'OK: SMTP login successfull')
+    print(f'OK: SMTP login successful')
     return OK
   except:
     print(f'WARNING: SMTP service was not authorized')
@@ -90,7 +115,7 @@ def smtps(exit):
     s = SMTP_SSL(args.hostname)
     s.login(p_file.get('e_user'), p_file.get('e_pass'))
     s.quit()
-    print(f'OK: SMTPs login successfull')
+    print(f'OK: SMTPs login successful')
     return OK
   except:
     print(f'WARNING: SMTPs service was not authorized')
@@ -105,6 +130,10 @@ if __name__ == '__main__':
     sys.exit(imap(exit))
   elif args.service == 'imaps':
     sys.exit(imaps(exit))
+  elif args.service == 'pop3':
+    sys.exit(pop3(exit))
+  elif args.service == 'pop3s':
+    sys.exit(pop3s(exit))
   elif args.service == 'smtp':
     sys.exit(smtp(exit))
   elif args.service == 'smtps':
