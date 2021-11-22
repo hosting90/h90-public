@@ -6,7 +6,6 @@ from ftplib import FTP, FTP_TLS
 from imaplib import IMAP4, IMAP4_SSL
 from poplib import POP3, POP3_SSL
 from smtplib import SMTP, SMTP_SSL
-from subprocess import Popen, PIPE
 import socket
 import yaml
 
