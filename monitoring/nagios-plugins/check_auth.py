@@ -121,22 +121,8 @@ def smtps(exit):
     return CRITICAL
 
 if __name__ == '__main__':
-  if args.service == 'ftp':
-    sys.exit(ftp(exit))
-  elif args.service == 'ftps':
-    sys.exit(ftps(exit))
-  elif args.service == 'imap':
-    sys.exit(imap(exit))
-  elif args.service == 'imaps':
-    sys.exit(imaps(exit))
-  elif args.service == 'pop3':
-    sys.exit(pop3(exit))
-  elif args.service == 'pop3s':
-    sys.exit(pop3s(exit))
-  elif args.service == 'smtp':
-    sys.exit(smtp(exit))
-  elif args.service == 'smtps':
-    sys.exit(smtps(exit))
+  if args.service in globals():
+    sys.exit(eval(args.service)(exit))
   else:
     print(f'{args.service} service not found')
     sys.exit(UNKNOWN)
