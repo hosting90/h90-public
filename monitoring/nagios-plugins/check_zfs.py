@@ -79,8 +79,8 @@ checkCapacity=True
 capWarnThreshold=90
 capCritThreshold=95
 checkFragmentation=True
-fragWarnThreshold=50
-fragCritThreshold=80
+fragWarnThreshold=85
+fragCritThreshold=95
 useSudoToRunZfsCommands=True
 
 logging.basicConfig(stream=sys.stdout, format='%(message)s', level=logging.WARNING);
