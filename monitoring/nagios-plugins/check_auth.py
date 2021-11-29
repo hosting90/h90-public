@@ -9,7 +9,7 @@ import socket
 import sys
 import yaml
 
-socket.setdefaulttimeout(3.0)
+socket.setdefaulttimeout(10.0)
 pass_file = '/root/pass.yaml'
 
 OK = 0
