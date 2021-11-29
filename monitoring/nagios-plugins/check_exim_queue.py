@@ -31,10 +31,10 @@ def main(exit):
 
   for line in p.stdout.readlines():
     queue = line.decode('utf-8').strip()
-    if int(queue) <= args.warn:
+    if int(queue) <= int(args.warn):
       print(f'OK: exim_queue is {queue} | queue={queue};{args.warn};{args.crit}')
       return OK
-    elif int(queue) >= args.warn and queue <= args.crit:
+    elif int(queue) >= int(args.warn) and int(queue) <= int(args.crit):
       print(f'WARNING: exim_queue is {queue} | queue={queue};{args.warn};{args.crit}')
       return WARNING
     else:
