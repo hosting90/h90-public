@@ -84,7 +84,7 @@ def main():
         return STATUS_UNKNOWN
 
     # build command
-    ceph_health = [ceph_exec]
+    ceph_health = ['/usr/bin/sudo', ceph_exec]
 
     if args.cephadm:
         # Prepend the command with the cephadm binary and the shell command
