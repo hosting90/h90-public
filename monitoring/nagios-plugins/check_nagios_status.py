@@ -46,8 +46,8 @@ def main():
 		ret_msg += 'CRITICAL:\n' + '\n'.join(ret_msg_dict[2])
 	if ret_code > OK:
 		ret_msg += 'WARNING:\n' + '\n'.join(ret_msg_dict[1])
-	if ret_code >= OK:
-		ret_msg += 'OK:\n' + '\n'.join(ret_msg_dict[0])
+	if ret_code == OK:
+		ret_msg = 'all nagios services are OK'
 	print(ret_msg)
 	return ret_code
 
