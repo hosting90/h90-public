@@ -10,6 +10,7 @@ UNKNOWN = 3
 def main(args):
 	ret_code = OK
 	ret_msg_list = []
+	ret_msg = ''
 	for version in args.php_versions:
 		try:
 			resp = requests.get(f'http://{version}.{args.inetname}', timeout=30)
@@ -21,7 +22,7 @@ def main(args):
 			ret_msg_list.append(f'{version}.{args.inetname} reached exception: {e}')
 
 	if ret_code > OK:
-		ret_msg += f'Failed checks:\n' + '\n'.join(ret_msg_dict[2])
+		ret_msg += f'Failed checks:\n' + '\n'.join(ret_msg_list)
 	else:
 		ret_msg = 'All HTTP checks are ok'
 	print(ret_msg)
