@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #pokud jsou zadany oba parametry tak hlida . Jinak jen sbira data. Prvni warning a druhy error. Nastavuje se v procentech pozadovany minimalni stav volne pameti. Volna pamet se pocita vcetne cache
 
 TOTAL=`cat /proc/meminfo | grep MemTotal |  awk '{ print $2 }' `
