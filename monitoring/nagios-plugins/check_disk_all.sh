@@ -14,6 +14,11 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    -e)
+      check_args="$check_args $2"
+      shift
+      shift
+      ;;
     *)
       echo "Unknwon parameter $1"
       exit 3
