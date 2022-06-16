@@ -15,17 +15,13 @@ def main():
     stderr=PIPE
   )
   data_out = []
-  print(f'Usage: | ', end="")
+  print(f'| ', end="")
   for item in p.stdout.readlines():
       data_out = item.split()
       NAME = (data_out[0]).decode()
       USEDSNAP = data_out[3].decode("utf-8")
       USEDDS = data_out[4].decode("utf-8")
-      print(f'{NAME}={USEDDS};;; {NAME}/snap={USEDSNAP};;;', end=" ")
+      print(f'{NAME}_SNAP={USEDSNAP};;; {NAME}_USE={USEDDS};;;', end=" ")
 
 if __name__ == '__main__':
-  try:
-    main()
-    sys.exit(OK)
-  except:
-    sys.exit(UNKNOWN)
+  sys.exit(main())
