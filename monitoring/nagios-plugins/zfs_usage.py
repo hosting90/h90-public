@@ -21,7 +21,7 @@ def main():
       NAME = (data_out[0]).decode()
       USEDSNAP = data_out[3].decode("utf-8")
       USEDDS = data_out[4].decode("utf-8")
-      print(f'{NAME}_SNAP={USEDSNAP};;; {NAME}_USE={USEDDS};;;', end=" ")
+      print(f'{NAME}={USEDDS}B;;; {NAME}/snap={USEDSNAP}B;;;', end=" ")
 
 if __name__ == '__main__':
   sys.exit(main())
