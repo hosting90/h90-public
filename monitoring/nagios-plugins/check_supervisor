@@ -1,0 +1,87 @@
+#!/bin/bash
+
+#
+# @author Tomas Henzl (tomas.henzl@webglobe.com)
+#
+# changelog:
+#   2022/07/21 - created
+#
+
+NOTIFY_TEMP='/var/run/supervisor-check-notify'
+NOTIFY_INTERVAL='300'
+HELP_MSG="Usage: $(basename $0)
+
+Možné parametry:
+
+exclude='FATAL\|foo'
+
+notify='th@stable.cz lll@neco.cz'"
+
+# parse arguments
+parameters=("$@")
+
+for (( i=0; i<${#parameters[@]}; i++)); do
+	parameter="${parameters[$i]}"
+
+	case "$parameter" in
+		exclude=*) exclude="${parameter#*=}";;
+		notify=*)   notify="${parameter#*=}";;
+		--help)    echo "$HELP_MSG"; exit 0;;
+		-h)        echo "$HELP_MSG"; exit 0;;
+		*)         echo "Unknown parater: $parameter"; echo; echo "$HELP_MSG"; exit 1;;
+	esac
+done
+
+# notify function
+function notify_email() {
+	now=$(date +%s)
+
+	if [[ -f "$NOTIFY_TEMP" ]]; then
+		last_modification_time=$(stat -c %Y "$NOTIFY_TEMP")
+	else
+		last_modification_time=$(( now - (NOTIFY_INTERVAL + 1) ))
+	fi
+
+	if (( (now - last_modification_time) > NOTIFY_INTERVAL )); then
+	#if [[ $(( now - last_modification_time )) > "$NOTIFY_INTERVAL" ]]; then
+		echo "$1" | mailx -s "Supervisor $(hostname -s)" $notify
+		touch "$NOTIFY_TEMP"
+	fi
+}
+
+# check
+vystup=$(/usr/bin/supervisorctl status 2>/dev/null);
+rc=$?
+
+# jde se vůbec připojit?
+case "$rc" in
+	0)	;;
+	3)	;;
+	*)	msg="ERROR: Uknkown exit code"
+		echo "$msg"
+		[[ -n "$notify" ]] && notify_email "$msg"
+		exit 2;;
+esac
+
+# stopped & ostatni
+msg='All OK'; ret=0
+
+# stopped
+[[ -z "$exclude" ]] && grep='šščkčkpfpfaaaa' || grep="šščkčkpfpfaaaa\|${exclude}"
+
+if [[ -n $(grep "STOPPED" <<< "$vystup" | grep -v "$grep") ]]; then
+    msg="Warning: supervisorctl status contains STOPPED"
+    ret=1
+fi
+
+# ostatni
+[[ -z "$exclude" ]] && grep='RUNNING\|STOPPED\|STARTING' || grep="RUNNING\|STOPPED\|STARTING\|${exclude}"
+
+if [[ -n $(grep -v "$grep" <<< "$vystup") ]]; then
+    msg="Error: supervisorctl status contains undesired output"
+    ret=2
+fi
+
+echo "$msg"
+[[ -n "$notify" && "$ret" != 0 ]] && notify_email "$msg"
+exit $ret
