@@ -5,7 +5,7 @@
 #
 
 CFGFILE='check_dmesg.cfg'
-REGEX='Hardware Error|I/O error|hard resetting link|DRDY ERR|temperature above threshold|segfault|MEMORY ERROR|dropping packet|This should not happen!! Data will be lost'
+REGEX='Hardware Error|I/O error|hard resetting link|DRDY ERR|temperature above threshold|segfault|MEMORY ERROR|dropping packet|This should not happen!! Data will be lost|Out of memory'
 
 [[ -f "$(dirname $0)/$CFGFILE" ]] && source "$(dirname $0)/$CFGFILE"
 
