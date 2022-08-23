@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#
+# @author Tomas Henzl (tomas.henzl@webglobe.com)
+#
+# changelog:
+#   2022/08/19 - created
+#
+
+function die() { echo "$1"; exit "${2:-1}"; }
+
+out=$(crm_mon -s) || die "CRIT: crm_mon -s returned non zero: $out"
+[[ -z "$out" ]] && die "CRIT: crm_mon -s returned empty string"
+
+case "$out" in
+	'CLUSTER OK:'*)   ret=0;;
+	'CLUSTER WARN:'*) ret=1;;
+	'CLUSTER CRIT:'*) ret=2;;
+	*) die "CRIT: crm_mon -s returned unknown status: $out";;
+esac
+
+echo "$out"
+exit "$ret"
