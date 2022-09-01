@@ -14,6 +14,7 @@ def usage():
 def main(args):
 	client = docker.from_env()
 	container_status = {}
+	unhealthy_containers = []
 	ret_code = OK
 	ret_msg = ''
 	if len(args) == 0:
@@ -22,6 +23,8 @@ def main(args):
 	for container in client.containers.list(all=True):
 		if any(re.fullmatch(arg, container.name) for arg in args):
 			container_status[container.name] = container.attrs['State']['Status']
+			if 'Health' in container.attrs['State'] and container.attrs['State']['Health']['Status'] != 'healthy':
+				unhealthy_containers.append(container.attrs['Name'])
 	for container in args:
 		if not any(re.fullmatch(container, arg) for arg in container_status.keys()):
 			ret_code = UNKNOWN
@@ -33,6 +36,10 @@ def main(args):
 				ret_code = CRITICAL
 			ret_msg += f'{container} is {container_status[container]}!!!\n'
 
+	if len(unhealthy_containers) > 0:
+		if ret_code < CRITICAL:
+			ret_code = CRITICAL
+		ret_msg += f'Unhealthy containers present: {unhealthy_containers}\n'
 	if ret_msg == '':
 		ret_msg = 'All containers are running'
 
