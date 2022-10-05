@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#
+# Check dmesg output for out of memory
+#
+
+DOW=$(date +%u)
+CFGFILE='check_dmesg.cfg'
+REGEX='Out of memory'
+
+AGO='1 day ago'
+if [[ $DOW -eq 6 || $DOW -eq 7 ]]; then
+  AGO='3 day ago'
+fi;
+
+[[ -f "$(dirname $0)/$CFGFILE" ]] && source "$(dirname $0)/$CFGFILE"
+
+output=$(dmesg --time-format iso -l err,crit,alert,emerg 2>/dev/null || dmesg)
+output=$(awk -FT -v date="$(date +%Y-%m-%d -d "$AGO")" '$1>date' <<< "$output" )
+
+if [ $? -ne 0 ]; then
+  exit 3;
+fi;
+
+if [[ -n "$output" ]]; then
+  filtered_output=$(grep -E -i "$REGEX" <<< "$output")
+
+  if [[ -n "$filtered_output" ]]; then
+    echo -n 'ERROR - The dmesg output contain error(s):<br>'
+    echo "$filtered_output" | cut -c1-100 | sed 's|$|<br>|g' | tail -n10 | tr -d '\n'
+    exit 2
+  fi
+fi
+
+echo "OK - The dmesg command output doesn't seem contain error."
+exit 0
