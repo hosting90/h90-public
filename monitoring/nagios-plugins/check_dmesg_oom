@@ -9,7 +9,11 @@ CFGFILE='check_dmesg.cfg'
 REGEX='Out of memory'
 
 AGO='1 day ago'
-if [[ $DOW -eq 6 || $DOW -eq 7 ]]; then
+if [[ $DOW -eq 7 ]]; then
+  AGO='2 day ago'
+fi;
+
+if [[ $DOW -eq 1 ]]; then
   AGO='3 day ago'
 fi;
 
