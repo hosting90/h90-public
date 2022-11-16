@@ -235,7 +235,7 @@ if not validPool:
 
 ###################################################################################
 ##
-# Get info on zfs pool size
+# Get info on zfs pool size IVA-774
 fullCommand = GetArgsForZfsCommand([zfsCommand, 'list', args.pool])
 
 try:
