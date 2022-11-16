@@ -235,6 +235,36 @@ if not validPool:
 
 ###################################################################################
 ##
+# Get info on zfs pool size
+fullCommand = GetArgsForZfsCommand([zfsCommand, 'list', args.pool])
+
+try:
+    childProcess = subprocess.Popen(fullCommand, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+except OSError as osException:
+    stateNum = RaiseStateNum(3, stateNum)
+    LogWarningRootProcessWarningAndExit("Zpool command - exception", stateNum, osException);
+
+zpoolString = childProcess.communicate()[0]
+zpoolRetval = childProcess.returncode
+
+if zpoolRetval == 1:
+    stateNum = RaiseStateNum(3, stateNum)
+    commandDebugString = f"Zpool command - retval. Original command: \"{fullCommand}\"";
+    LogWarningRootProcessWarningAndExit(commandDebugString, stateNum);
+
+zpoolLines=zpoolString.splitlines()
+zpoolMeta=zpoolLines[0].decode().split()
+zpoolMetaStr=','.join(zpoolMeta)
+zpoolEntry=zpoolLines[1].decode().split()
+zpoolEntryStr=','.join(zpoolEntry)
+
+free=''
+
+for idx, fieldName in enumerate(zpoolMeta):
+    if fieldName=='AVAIL':
+        free=zpoolEntry[idx]
+
 # Get info on zpool
 fullCommand = GetArgsForZfsCommand([zpoolCommand, 'list', args.pool])
 
@@ -262,7 +292,6 @@ zpoolEntryStr=','.join(zpoolEntry)
 name=''
 size=''
 alloc=''
-free=''
 expandsz=''
 frag=''
 cap=''
@@ -278,8 +307,6 @@ for idx, fieldName in enumerate(zpoolMeta):
         size=zpoolEntry[idx]
     elif fieldName=='ALLOC':
         alloc=zpoolEntry[idx]
-    elif fieldName=='FREE':
-        free=zpoolEntry[idx]
     elif fieldName=='EXPANDSZ':
         expandsz=zpoolEntry[idx]
     elif fieldName=='FRAG':
