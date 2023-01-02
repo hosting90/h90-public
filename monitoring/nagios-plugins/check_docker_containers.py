@@ -26,7 +26,7 @@ def main(args):
 			if 'Health' in container.attrs['State'] and container.attrs['State']['Health']['Status'] != 'healthy':
 				unhealthy_containers.append(container.attrs['Name'])
 	for container in args:
-		if not any(re.fullmatch(container, arg) for arg in container_status.keys()):
+		if len(container_status) > 0 and not any(re.fullmatch(container, arg) for arg in container_status.keys()):
 			ret_code = UNKNOWN
 			ret_msg += f'{container} not present in docker container status list {str(container_status)}!!!\n'
 
