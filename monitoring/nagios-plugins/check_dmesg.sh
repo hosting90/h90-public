@@ -9,7 +9,11 @@ REGEX='Hardware Error|I/O error|hard resetting link|DRDY ERR|temperature above t
 
 [[ -f "$(dirname $0)/$CFGFILE" ]] && source "$(dirname $0)/$CFGFILE"
 
-output=$(dmesg -T -l err,crit,alert,emerg 2>/dev/null || dmesg)
+if [ -z "$1" ]; then
+  output=$(dmesg -T -l err,crit,alert,emerg 2>/dev/null || dmesg)
+else
+  output=$(journalctl -kS -"$1hour")
+fi
 
 if [ $? -ne 0 ]; then
   exit 3;
