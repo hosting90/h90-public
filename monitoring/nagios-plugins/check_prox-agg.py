@@ -20,7 +20,7 @@ UNKNOWN = 3
 
 def get_vcpu():
     node = socket.gethostname()
-    get_vcpu = "/usr/bin/sudo pvesh get /nodes/" + node + "/qemu --output-format=json"
+    get_vcpu = "/usr/bin/sudo /usr/bin/pvesh get /nodes/" + node + "/qemu --output-format=json"
     p = subprocess.Popen(get_vcpu.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
     if output:
