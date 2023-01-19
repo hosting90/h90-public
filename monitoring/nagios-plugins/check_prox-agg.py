@@ -19,7 +19,7 @@ CRITICAL = 2
 UNKNOWN = 3
 
 def get_vcpu():
-    node = socket.gethostname()
+    node = str(socket.gethostname().split('.', 1)[0])
     get_vcpu = "/usr/bin/sudo /usr/bin/pvesh get /nodes/" + node + "/qemu --output-format=json"
     p = subprocess.Popen(get_vcpu.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
