@@ -36,16 +36,20 @@ def get_cpu():
     return int(c)
 
 def main(exit):
-    agg = ( (get_vcpu()) / (get_cpu()) )
-    if agg < args.warn:
-        print(f'OK: cpu agg is {agg:.2f} | cpuagg={agg:.2f};{args.warn};{args.crit}')
-        return OK
-    if agg >= args.warn and agg <= args.crit:
-        print(f'WARNING: cpu agg is {agg:.2f} | cpuagg={agg:.2f};{args.warn};{args.crit}')
-        return WARNING
-    else:
-        print(f'CRITICAL: cpu agg is {agg:.2f} | cpuagg={agg:.2f};{args.warn};{args.crit}')
-        return CRITICAL
+    try:
+        agg = ( (get_vcpu()) / (get_cpu()) )
+        if agg < args.warn:
+            print(f'OK: cpu agg is {agg:.2f} | cpuagg={agg:.2f};{args.warn};{args.crit}')
+            return OK
+        if agg >= args.warn and agg <= args.crit:
+            print(f'WARNING: cpu agg is {agg:.2f} | cpuagg={agg:.2f};{args.warn};{args.crit}')
+            return WARNING
+        else:
+            print(f'CRITICAL: cpu agg is {agg:.2f} | cpuagg={agg:.2f};{args.warn};{args.crit}')
+            return CRITICAL
+    except BaseException as error:
+        print(f"{error}")
+        return UNKNOWN
 
 if __name__ == '__main__':
     sys.exit(main(exit))
