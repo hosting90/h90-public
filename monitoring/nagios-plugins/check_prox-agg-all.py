@@ -21,7 +21,7 @@ def get_nodes():
     if output:
         n = output.decode('utf-8').strip()
         n = json.loads(output)
-        n = {c['node']: c['maxcpu'] for c in n}
+        n = {c['node']: c['maxcpu'] for c in n if c['status'] == 'online'}
     return n
 
 def get_vcpu(node):
