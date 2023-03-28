@@ -62,6 +62,7 @@ while IFS= read -r part; do
 	fi
 
 	READIO=`echo $stats | grep "$part " | awk '{ print $4 }' `
+	[ -z "$READIO" ] && continue
 	WRITEIO=`echo $stats | grep "$part " | awk '{ print $8 }' `
 	READS=`echo $stats | grep "$part " | awk '{ print $6 }' `
 	READ=$(($READS*512));
