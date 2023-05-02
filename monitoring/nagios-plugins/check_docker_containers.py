@@ -31,7 +31,7 @@ def main(args):
 			ret_msg += f'{container} not present in docker container status list {str(container_status)}!!!\n'
 
 	for container in container_status:
-		if not re.fullmatch(r'(running|created)', container_status[container]):
+		if not re.fullmatch(r'(running)', container_status[container]):
 			if ret_code < CRITICAL:
 				ret_code = CRITICAL
 			ret_msg += f'{container} is {container_status[container]}!!!\n'
