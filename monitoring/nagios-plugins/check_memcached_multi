@@ -1,0 +1,23 @@
+#!/bin/bash
+
+PORTS=$1
+STATUS=0
+
+CHECK_MEMCACHED=""
+test -f /usr/local/h90-monitoring/monitoring/nagios-plugins/check_memcached.pl && CHECK_MEMCACHED=/usr/local/h90-monitoring/monitoring/nagios-plugins/check_memcached.pl
+test -f /usr/lib/nagios/plugins/check_memcached && CHECK_MEMCACHED=/usr/lib/nagios/plugins/check_memcached
+test -f /usr/lib/monitoring/plugins/check_memcached && CHECK_MEMCACHED=/usr/lib/monitoring/plugins/check_memcached
+
+for port in `echo $PORTS | tr , ' '`; do
+	MSG=$($CHECK_MEMCACHED -H localhost -p $port 2>&1)
+	if [ $? -ne 0 ]; then
+		STATUS=2;
+		echo $MSG
+	fi;
+done;
+
+if [ $STATUS -eq 0 ]; then
+	echo "OK";
+fi;
+
+exit $STATUS;
