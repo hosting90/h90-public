@@ -1,0 +1,3 @@
+[submodule "monitoring/nagios-plugins/check_smart_all_disks"]
+	path = monitoring/nagios-plugins/check_smart_all_disks
+	url = https://github.com/webglobe-com/check_smart_all_disks.git
