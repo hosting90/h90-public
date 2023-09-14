@@ -51,7 +51,7 @@ t = "default_input_policy_counter"
 results[t] = False
 msgs[t] = "counter rule not found / not last, runtime rules added?"
 
-rules = find(output, "rule", family="inet", table="filter")
+rules = find(output, "rule", family="inet", table="filter", chain="input")
 rules.sort(key=lambda x: x["handle"])
 last_rule = rules[-1] if rules else []
 
