@@ -12,7 +12,7 @@
 for https_host_entry in "$@"; do
     IFS=: read host warn crit <<< "$https_host_entry"
 
-	result+=( "$(/usr/lib64/nagios/plugins/check_http --sni -H "$host" -C "${warn:-5}","${crit:-3}" 2>&1)" )
+	result+=( "$(/usr/lib64/nagios/plugins/check_http --sni -H "$host" -C "${warn:-4}","${crit:-2}" 2>&1)" )
 	ret=$?
 	(( ret > ret_max )) && ret_max=$ret
 done
