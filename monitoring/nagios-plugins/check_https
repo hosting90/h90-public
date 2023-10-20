@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2023/10/20 - show host in output (yes, it's needed)
 #   2023/10/10 - created
 #
 # https://wiki.webglobe.com/Icinga#https_check
@@ -12,7 +13,7 @@
 for https_host_entry in "$@"; do
     IFS=: read host warn crit <<< "$https_host_entry"
 
-	result+=( "$(/usr/lib64/nagios/plugins/check_http --sni -H "$host" -C "${warn:-4}","${crit:-2}" 2>&1)" )
+	result+=( "${host}: $(/usr/lib64/nagios/plugins/check_http --sni -H "$host" -C "${warn:-4}","${crit:-2}" 2>&1)" )
 	ret=$?
 	(( ret > ret_max )) && ret_max=$ret
 done
