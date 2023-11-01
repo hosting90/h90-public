@@ -21,7 +21,7 @@ def main(args):
 		args = ['.*']
 
 	for container in client.containers.list(all=True):
-		if '.*' in args and container.name == 'c-healtcheck':
+		if 'c-healtcheck' not in args and container.name == 'c-healtcheck':
 			continue
 		if any(re.fullmatch(arg, container.name) for arg in args):
 			container_status[container.name] = container.attrs['State']['Status']
