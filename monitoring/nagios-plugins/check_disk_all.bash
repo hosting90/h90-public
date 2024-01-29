@@ -63,9 +63,11 @@ for arg in "$@"; do
 
 done
 
-args+=(
-  -C -w 50 -c 20 -W 10% -K 5% -p /boot/efi
-)
+test -d /boot/efi && {
+  args+=(
+    -C -w 50 -c 20 -W 10% -K 5% -p /boot/efi
+  )
+}
 
 [[ "$DEBUG" ]] && set -x
 $CHECK_DISK "${args[@]}"
