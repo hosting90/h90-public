@@ -3,6 +3,7 @@
 import nftables
 import json
 import sys
+import os
 
 nft = nftables.Nftables()
 nft.set_json_output(True)
@@ -57,6 +58,17 @@ last_rule = rules[-1] if rules else []
 
 if last_rule and set(last_rule["expr"][0].keys()) == { "counter" }:
   results[t] = True
+
+#
+# check if "iptables" points to nft (if installed)
+#
+t = 'default_nftables_binary'
+results[t] = True
+msgs[t] = "nftables is not a backend for iptables!"
+if os.path.exists('/etc/alternatives/iptables'):
+  dest = os.readlink('/etc/alternatives/iptables')
+  if dest != "/usr/sbin/iptables-nft":
+    results[t] = False
 
 #
 # finish
