@@ -17,14 +17,14 @@ cs_n=$(keydb-cli info replication | grep connected_slaves: | awk -F ":" '{ print
 rt=0
 if [ "$cm_n" != "$cm_expect" ]; then
   echo "connected_masters:$cm_n, expected $cm_expect"
-  rt=1
+  rt=2
 else
   echo -e "connected_masters:$cm_n - OK"
 fi
 
 if [ "$cs_n" != "$cs_expect" ]; then
   echo "connected_slaves:$cs_n, expected $cs_expect"
-  rt=1
+  rt=2
 else
   echo -e "connected_slaves:$cs_n - OK"
 fi
