@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#
+# @author Tomas Henzl (tomas.henzl@webglobe.com)
+#
+# changelog:
+#   2024/1/25 - created
+#
+#
+
+#
+# Check uses:
+# https://github.com/nagios-plugins-rabbitmq/nagios-plugins-rabbitmq/blob/master/scripts/check_rabbitmq_cluster
+#
+
+AWK='
+/Disk Nodes/ { p = 1; }
+p {
+	if($0 ~ /rabbit/) {
+		nodes=nodes $0 ","
+	}
+}
+
+/Running Nodes/ { print substr(nodes, 1, length(nodes)-1) }'
+
+function die() { echo "$1"; exit "${2:-2}"; }
+
+set -o pipefail
+nodes=$(rabbitmqctl -s cluster_status 2>/dev/null | awk "$AWK") || \
+	die 'CRIT: "rabbitmqctl -s cluster_status" returned non zero' 2
+
+[[ -z "$nodes" ]] && die 'CRIT: No nodes found' 2
+
+/usr/local/h90-monitoring/monitoring/nagios-plugins/check_rabbitmq_cluster -u stablemonitoring -p Sfge53dgdr78a -H localhost -n "$nodes"

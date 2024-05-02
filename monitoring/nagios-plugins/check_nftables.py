@@ -3,6 +3,7 @@
 import nftables
 import json
 import sys
+import os
 
 nft = nftables.Nftables()
 nft.set_json_output(True)
@@ -31,17 +32,53 @@ def find(data, key, **kwargs):
 
 
 results = {}
+msgs = {}
 
-results["default_input_policy_drop"] = False
+#
+# check if default input policy is set to drop
+#
+
+t = "default_input_policy_drop"
+results[t] = False
+msgs[t] = "check if firewall is configured"
 if find(output, "chain", family="inet", type="filter", hook="input", policy="drop"):
-  results["default_input_policy_drop"] = True
+  results[t] = True
 
+#
+# check if "counter" is the last rule in input chain
+#
+
+t = "default_input_policy_counter"
+results[t] = False
+msgs[t] = "counter rule not found / not last, runtime rules added?"
+
+rules = find(output, "rule", family="inet", table="filter", chain="input")
+rules.sort(key=lambda x: x["handle"])
+last_rule = rules[-1] if rules else []
+
+if last_rule and set(last_rule["expr"][0].keys()) == { "counter" }:
+  results[t] = True
+
+#
+# check if "iptables" points to nft (if installed)
+#
+t = 'default_nftables_binary'
+results[t] = True
+msgs[t] = "nftables is not a backend for iptables!"
+if os.path.exists('/etc/alternatives/iptables'):
+  dest = os.readlink('/etc/alternatives/iptables')
+  if dest != "/usr/sbin/iptables-nft":
+    results[t] = False
+
+#
+# finish
+#
 
 rt = 0
 
 for check in results.keys():
   if results[check] == False:
-    print(check, "- failed")
+    print(check, "- failed,", msgs[check])
     rt = 2
 
 if rt == 0:

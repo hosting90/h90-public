@@ -18,20 +18,24 @@ def get_nodes():
     get_nodes = "/usr/bin/sudo /usr/bin/pvesh get /nodes/ --output-format=json"
     p = subprocess.Popen(get_nodes.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
-    if output:
+    if p.returncode ==0:
         n = output.decode('utf-8').strip()
         n = json.loads(output)
         n = {c['node']: c['maxcpu'] for c in n if c['status'] == 'online'}
-    return n
+        return n
+    else:
+        return None
 
 def get_vcpu(node):
     get_vcpu = "/usr/bin/sudo /usr/bin/pvesh get /nodes/" + node + "/qemu --output-format=json"
     p = subprocess.Popen(get_vcpu.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
-    if output:
+    if p.returncode == 0:
         j = output.decode('utf-8').strip()
         j = json.loads(output)
         j = sum(c['cpus'] for c in j if (c['status'] == 'running'))
+    else:
+        j = 0
     return int(j)
 
 def main(exit):

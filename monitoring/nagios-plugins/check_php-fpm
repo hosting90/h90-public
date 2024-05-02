@@ -20,7 +20,7 @@ for fpm_connection_info in "$@"; do
         SCRIPT_NAME="$uri" \
         SCRIPT_FILENAME="$uri" \
         REQUEST_METHOD=GET \
-        cgi-fcgi -bind -connect "$socket" 2>/dev/null
+        cgi-fcgi -bind -connect "${socket// /:}" 2>/dev/null
     )
 
     result_rets+=( $? )

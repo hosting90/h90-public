@@ -5,19 +5,26 @@
 #
 # changelog:
 #   2022/08/19 - created
+#   2023/08/02 - rewrite to different command to catch more errors
 #
+
+_AWK='
+BEGIN { IGNORECASE = 1 }
+
+/fail|stopped/ { gsub(/\t/, " "); gsub(/ {2,}/, " "); printf $0 "; <br>" }
+
+END { printf "\n" }
+'
 
 function die() { echo "$1"; exit "${2:-1}"; }
 
-out=$(crm_mon -s) || die "CRIT: crm_mon -s returned non zero: $out"
-[[ -z "$out" ]] && die "CRIT: crm_mon -s returned empty string"
 
-case "$out" in
-	'CLUSTER OK:'*)   ret=0;;
-	'CLUSTER WARN:'*) ret=1;;
-	'CLUSTER CRIT:'*) ret=2;;
-	*) die "CRIT: crm_mon -s returned unknown status: $out";;
-esac
+out=$(pcs resource status 2>&1) || die "CRIT: pcs resource status returned non zero: $(tr '\n' ';' <<< "$out")" 2
 
-echo "$out"
-exit "$ret"
+out2=$(awk "$_AWK" <<< "$out")
+
+if [[ -z "$out2" ]]; then
+	die "OK: Everything seems runnig OK (No errors captured)" 0
+else
+	die "CRIT: $out2" 2
+fi
