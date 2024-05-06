@@ -1,0 +1,26 @@
+#!/bin/bash
+
+lag=$(su - postgres -c "psql -c 'select extract (epoch from now()-pg_last_xact_replay_timestamp()) as replication_lag;'" | head -n 3 | tail -n 1 | awk '{ print $1 }')
+
+
+res=$(bc -l <<<"$lag > 60")
+if [ $res -eq 1 ]; then
+  echo "Critical: replica $lag behind master.|replica_lag=$lag;1;60;;";
+  exit 2;
+fi;
+
+
+res=$(bc -l <<<"$lag > 1")
+if [ $res -eq 1 ]; then
+  echo "Warning: replica $lag behind master.|replica_lag=$lag;1;60;;";
+  exit 1;
+fi;
+
+res=$(bc -l <<<"$lag < 1")
+if [ $res -eq 1 ]; then
+  echo "OK: replica is synced: $lag|replica_lag=$lag;1;60;;";
+  exit 0;
+fi;
+
+echo "Replica lag unknown: $lag|replica_lag=;1;60;;"
+exit 3;
