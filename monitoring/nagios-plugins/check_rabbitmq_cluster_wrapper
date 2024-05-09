@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2024/5/9  - fix password leak
 #   2024/1/25 - created
 #
 #
@@ -31,4 +32,4 @@ nodes=$(rabbitmqctl -s cluster_status 2>/dev/null | awk "$AWK") || \
 
 [[ -z "$nodes" ]] && die 'CRIT: No nodes found' 2
 
-/usr/local/h90-monitoring/monitoring/nagios-plugins/check_rabbitmq_cluster -u stablemonitoring -p Sfge53dgdr78a -H localhost -n "$nodes"
+/usr/local/h90-monitoring/monitoring/nagios-plugins/check_rabbitmq_cluster -u "$1" -p "$2" -H localhost -n "$nodes"
