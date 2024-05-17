@@ -38,7 +38,10 @@ def get_nodes_disk():
         disks = json.loads(subprocess.check_output(get_disks.split(), universal_newlines=True))
         disk_count = sum([x['bluestore'] for x in disks if 'bluestore' in x])
         vm_count = len([x for x in vms if x['node'] == nodename])
-        n[nodename] = vm_count/disk_count
+        try:
+            n[nodename] = vm_count/disk_count
+        except:
+            n[nodename] = 0
     return n
 
 def get_vcpu(node):
