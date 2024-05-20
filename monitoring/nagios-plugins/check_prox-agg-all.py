@@ -36,7 +36,10 @@ def get_nodes_disk():
         nodename = node['node']
         get_disks = f"/usr/bin/sudo /usr/bin/pvesh get /nodes/{nodename}/disks/list --output-format=json"
         disks = json.loads(subprocess.check_output(get_disks.split(), universal_newlines=True))
-        disk_count = sum([x['bluestore'] for x in disks if 'bluestore' in x])
+        disk_count = 0
+        for d in disks:
+            if d['size'] > 1000000000000:
+                disk_count += 1
         vm_count = len([x for x in vms if x['node'] == nodename])
         try:
             n[nodename] = vm_count/disk_count
