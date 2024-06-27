@@ -7,6 +7,7 @@
 DOW=$(date +%u)
 CFGFILE='check_dmesg.cfg'
 REGEX='Out of memory'
+EXCLUDE="$1"
 
 AGO='1 day ago'
 if [[ $DOW -eq 7 ]]; then
@@ -27,11 +28,12 @@ if [ $? -ne 0 ]; then
 fi;
 
 if [[ -n "$output" ]]; then
-  filtered_output=$(grep -E -i "$REGEX" <<< "$output")
+  filtered_output=$(echo "$output" | grep -E -i "$REGEX" | egrep -v "^${EXCLUDE}\$")
 
   if [[ -n "$filtered_output" ]]; then
     echo -n 'ERROR - The dmesg output contain error(s):<br>'
     echo "$filtered_output" | cut -c1-100 | sed 's|$|<br>|g' | tail -n10 | tr -d '\n'
+    echo ""
     exit 2
   fi
 fi
