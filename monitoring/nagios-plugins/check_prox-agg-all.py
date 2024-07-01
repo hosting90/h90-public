@@ -33,6 +33,8 @@ def get_nodes_disk():
     vms = json.loads(subprocess.check_output(get_vms.split(), universal_newlines=True))
     n = {}
     for node in resources:
+        if node['status'] != 'online':
+            continue
         nodename = node['node']
         get_disks = f"/usr/bin/sudo /usr/bin/pvesh get /nodes/{nodename}/disks/list --output-format=json"
         disks = json.loads(subprocess.check_output(get_disks.split(), universal_newlines=True))
