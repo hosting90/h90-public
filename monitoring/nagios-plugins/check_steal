@@ -1,0 +1,62 @@
+#!/usr/bin/awk -f
+
+#
+# @author Tomas Henzl (tomas.henzl@webglobe.com)
+#
+# changelog:
+#   2024/08/28 - created
+#
+
+
+BEGIN {
+	if(! ARGV[2] ) {
+		print "Example usage:"
+		print
+		print "  steal 4 10"
+		print
+		print "first number Warning, second Critical"
+		exit 3
+	}
+
+	getline < "/proc/stat"
+	prev = $0
+
+	for (i = 2;i <= 9; i++) {
+		total_cpu_time[new] += $i
+	}
+	steal[new] = $9
+
+	n = getline < "/tmp/stat_prev"
+	if(n <=0 ) {
+		print "No previus data found, run me again."
+		print prev > "/tmp/stat_prev"
+		exit 0
+	}
+
+	for (i = 2;i <= 9; i++) {
+		total_cpu_time[prev] += $i
+	}
+	steal[prev] = $9
+
+	# avoid division by zero
+	if(total_cpu_time[new] == total_cpu_time[prev]) {
+		print "OK: Steal: 0.00 | steal=0.00"
+		exit 0
+	}
+
+	steal_percent = \
+	( \
+		(steal[new] - steal[prev]) \
+		/ \
+		(total_cpu_time[new] - total_cpu_time[prev]) \
+	) * 100
+
+	print prev > "/tmp/stat_prev"
+
+	if      (steal_percent >= ARGV[2] ) { printf "CRITICAL: "; ex_val = 2 }
+	else if (steal_percent >= ARGV[1] ) { printf "WARNING: ";  ex_val = 1 }
+	else                                { printf "OK: ";       ex_val = 0 }
+
+	printf("Steal: %.2f | steal=%.2f\n", steal_percent, steal_percent)
+	exit ex_val
+}
