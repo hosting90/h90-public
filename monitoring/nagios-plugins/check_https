@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2024/09/06 - added support for note
 #   2023/10/20 - show host in output (yes, it's needed)
 #   2023/10/10 - created
 #
