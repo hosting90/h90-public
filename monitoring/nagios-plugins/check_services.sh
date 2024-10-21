@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if ! command -v systemctl; then
+	echo -n "Alpine host"
+	exit 0
+fi
+
 retcode=0
 for i in "$@"; do
 	active=$(systemctl is-active "$i")
