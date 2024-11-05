@@ -67,8 +67,8 @@ def main():
         disk_agg = sum(node_disk_ratios.values()) / len(node_disk_ratios) if node_disk_ratios else 0
 
         # Format output for CPU and Disk
-        cpu_output = ' '.join(f'{node}={ratio:.2f};;;' for node, ratio in vcpu_ratios.items())
-        disk_output = ' '.join(f'disk_{node}={ratio:.2f};;;' for node, ratio in node_disk_ratios.items())
+        cpu_output = ' '.join(f'{node}={ratio:.2f};;;' for node, ratio in sorted(vcpu_ratios.items()))
+        disk_output = ' '.join(f'disk_{node}={ratio:.2f};;;' for node, ratio in sorted(node_disk_ratios.items()))
 
         # Determine status based on thresholds
         if cpu_agg < args.warn:
