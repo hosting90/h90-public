@@ -39,31 +39,35 @@ done
 #
 
 for (( i=0; i < ${#result_values[@]}; i++ )); do
+	socket="${result_sockets[$i]}"
+	socket="${socket##*/}"			# remove leading path
+	socket="${socket%.sock*}"		# remove any ".sock" at the end
+
+	sockets_pretty+=( "$socket" )
+
     while IFS=: read name value; do
         [[ -z "$value" ]] && continue
 
         value="${value// /}"
-        #echo "$name - $value"
+#        echo "$name - $value"
 
         case "$name" in
-            pool) pool="$value"; pools+=( "$pool" );;
-
-            'idle processes')       performace_data+=" ${pool}_idle_procs=${value:-0}";;
-            'active processes')     performace_data+=" ${pool}_active_procs=${value:-0}"; pools_active_procs+=( $value );;
-            'total processes')      performace_data+=" ${pool}_total_procs=${value:-0}";;
-            'max active processes') performace_data+=" ${pool}_max_active_procs=${value:-0}";;
+            'idle processes')       performace_data+=" ${socket}_idle_procs=${value:-0}";;
+            'active processes')     performace_data+=" ${socket}_active_procs=${value:-0}"; pools_active_procs+=( $value );;
+            'total processes')      performace_data+=" ${socket}_total_procs=${value:-0}";;
+            'max active processes') performace_data+=" ${socket}_max_active_procs=${value:-0}";;
         esac
     done <<< "${result_values[$i]}"
 
-    # some pool did not return zero, hard error
+    # some socket did not return zero, hard error
     if [[  "${result_rets[$i]}" != "0" ]]; then
         msg_status='CRITICAL'
         msg_details="${result_sockets[$i]}:${result_uris[$i]} command returned non zero"
         ret=2
     fi
 
-    # some pool did not provided data, hard error
-    if [[ -z "${pools[$i]}" ]]; then
+    # some socket did not provided data, hard error
+    if [[ -z "${result_values[$i]}" ]]; then
         msg_status='CRITICAL'
         msg_details+="; ${result_sockets[$i]}:${result_uris[$i]} returned invalid value"
         ret=2
@@ -81,10 +85,10 @@ echo -n "${msg_status:-OK}: "
 
 # or print status & performace_data
 echo -n "All pools running: "
-for (( i=0; i < ${#pools[@]}; i++ )); do
-    echo -n "${pools[$i]} (${pools_active_procs[$i]} working)"
+for (( i=0; i < ${#sockets_pretty[@]}; i++ )); do
+    echo -n "${sockets_pretty[$i]} (${pools_active_procs[$i]} working)"
 
-    (( i+1 < ${#pools[@]} )) && echo -n ', '
+    (( i+1 < ${#sockets_pretty[@]} )) && echo -n ', '
 done
 
 echo "|$performace_data"
