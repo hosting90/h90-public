@@ -70,7 +70,7 @@ while IFS= read -r part; do
 	WRITE=$(($WRITES*512));
 	echo -n "; ${part}_readio=${READIO}; ${part}_writeio=${WRITEIO}; ${part}_read=${READ}; ${part}_write=${WRITE}";
 
-done <<< "$(awk '$3 ~ /^(ext3|ext2|ext4|xfs|zfs)/ {print $1}' /etc/mtab)"
+done <<< "$(awk '$3 ~ /^(ext3|ext2|ext4|xfs|zfs)/ {print $1}' /etc/mtab | sort | uniq)"
 
 
 exit $EX;
