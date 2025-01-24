@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2025/01/24 - rewrite to show sockets(always unique) instead of FPM pools
 #   2024/08/27 - added check for cgi-fcgi binary
 #   2022/07/21 - created
 #
