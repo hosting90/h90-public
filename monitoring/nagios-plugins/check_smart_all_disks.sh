@@ -307,7 +307,8 @@ while IFS='#' read -d '#' -r i; do
 			;;
 		*nvme*)
 			[ $DEBUG -ne 0 ] && echoerr "DEBUG: $device is nvme (pcieport)"
-			check_disk ${device::-3} nvme # delete last two chars: nvme0n1 -> nvme0
+			#check_disk ${device::-3} nvme # delete last two chars: nvme0n1 -> nvme0
+			check_disk $device nvme
 			;;
 		*usb-storage*)
 			[ $DEBUG -ne 0 ] && echoerr "DEBUG: $device is usb-storage (skipping)"
