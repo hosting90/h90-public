@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2025/05/19 - exclude '/run/docker/*'
 #   2024/01/22 - created
 #
 #
@@ -13,6 +14,7 @@
 
 [[ -z "$CHECK_DISK" ]] && echo 'check_disk not found' && exit 3
 
+# search for path excludes (-I) at the bottom
 args=(
   -u MB		# units
   -e		# show only errors
@@ -68,6 +70,11 @@ test -d /boot/efi && {
     -C -w 50 -c 20 -W 10% -K 5% -p /boot/efi
   )
 }
+
+# path excludes have to be here, nagios check requires some paths first
+args+=(
+	-I '/run/docker/*'
+)
 
 [[ "$DEBUG" ]] && set -x
 $CHECK_DISK "${args[@]}"
