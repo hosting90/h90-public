@@ -71,6 +71,11 @@ test -d /boot/efi && {
   )
 }
 
+# some hosts without any disk specified (and no /boot/efi) errors with:
+# "Paths need to be selected before using -i/-I. Use -A to select all paths explicitly"
+# this fixes it:
+args+=( -A )
+
 # path excludes have to be here, nagios check requires some paths first
 args+=(
 	-I '/run/docker/*'
