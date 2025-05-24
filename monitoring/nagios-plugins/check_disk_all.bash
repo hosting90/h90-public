@@ -79,6 +79,7 @@ args+=( -A )
 # path excludes have to be here, nagios check requires some paths first
 args+=(
 	-I '/run/docker/*'
+	-I '/sys/firmware/efi/efivars'
 )
 
 [[ "$DEBUG" ]] && set -x
