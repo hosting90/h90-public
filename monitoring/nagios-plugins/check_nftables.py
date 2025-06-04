@@ -60,6 +60,27 @@ if last_rule and set(last_rule["expr"][0].keys()) == { "counter" }:
   results[t] = True
 
 #
+# if jump to docker chain in input chain exists, then:
+#   check if "counter" is the last rule in docker chain
+#
+
+rules = find(output, "rule", family="inet", table="filter", chain="input")
+for rule in rules:
+  if rule["expr"][0] == { "jump": { "target": "docker" } }:
+    t = "default_docker_policy_counter"
+    results[t] = False
+    msgs[t] = "counter rule not found / not last in docker chain, runtime rules addded?"
+
+    rules = find(output, "rule", family="inet", table="filter", chain="docker")
+    rules.sort(key=lambda x: x["handle"])
+    last_rule = rules[-1] if rules else []
+
+    if last_rule and set(last_rule["expr"][0].keys()) == { "counter" }:
+      results[t] = True
+
+    break
+
+#
 # check if "iptables" points to nft (if installed)
 #
 t = 'default_nftables_binary'
