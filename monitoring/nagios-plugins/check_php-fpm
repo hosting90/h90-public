@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2025/06/26 - allow special FPM pool variable: VHOST_ROLE_AUTODETECT
 #   2025/01/24 - rewrite to show sockets(always unique) instead of FPM pools
 #   2024/08/27 - added check for cgi-fcgi binary
 #   2022/07/21 - created
@@ -21,6 +22,13 @@ command -v 'cgi-fcgi' &> /dev/null || die 'cgi-fcgi binary not found, please ins
 for fpm_connection_info in "$@"; do
     IFS=: read socket uri <<< "$fpm_connection_info"
 
+	if [[ "$socket" == 'VHOST_ROLE_AUTODETECT' ]]; then
+		vhost_role_pools=( $(find /etc/php/*/fpm/pool.d -type f | \
+			xargs -n1 awk '/^listen\s*=/ { listen = $NF }; /^pm.status_path/ { status_path = $NF } END { if(listen && status_path) { print listen ":" status_path } }'
+		) )
+		continue
+	fi
+
     _result=$(
         SCRIPT_NAME="$uri" \
         SCRIPT_FILENAME="$uri" \
@@ -33,6 +41,25 @@ for fpm_connection_info in "$@"; do
     result_sockets+=( "$socket" )
     result_uris+=( "$uri" )
 done
+
+# one more loop, this time for $vhost_role_pools
+if [[ -n "$vhost_role_pools" ]]; then
+	for fpm_connection_info in "${vhost_role_pools[@]}"; do
+	    IFS=: read socket uri <<< "$fpm_connection_info"
+
+	    _result=$(
+	        SCRIPT_NAME="$uri" \
+	        SCRIPT_FILENAME="$uri" \
+	        REQUEST_METHOD=GET \
+	        cgi-fcgi -bind -connect "${socket// /:}" 2>/dev/null
+	    )
+
+	    result_rets+=( $? )
+	    result_values+=( "$_result" )
+	    result_sockets+=( "$socket" )
+	    result_uris+=( "$uri" )
+	done
+fi
 
 
 #
