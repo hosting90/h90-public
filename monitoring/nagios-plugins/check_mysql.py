@@ -15,11 +15,18 @@ def usage():
 
 def main(args):
   try:
-    p = Popen(
-      ['/usr/bin/sudo', 'docker', 'exec', '-u', 'root', '-i', 'c-' + sys.argv[1], 'mysqladmin', 'ping'],
-      stdout=PIPE,
-      stderr=PIPE
-    )
+    if sys.argv[1] == 'mariadb':
+      p = Popen(
+        ['/usr/bin/sudo', 'docker', 'exec', '-u', 'root', '-i', 'c-' + sys.argv[1], 'mariadb-admin', 'ping'],
+        stdout=PIPE,
+        stderr=PIPE
+      )
+    else:
+      p = Popen(
+        ['/usr/bin/sudo', 'docker', 'exec', '-u', 'root', '-i', 'c-' + sys.argv[1], 'mysqladmin', 'ping'],
+        stdout=PIPE,
+        stderr=PIPE
+      )
     for line in p.stderr.readlines():
       print('UNKNOWN:', line.decode('utf-8'), end='')
       return UNKNOWN
