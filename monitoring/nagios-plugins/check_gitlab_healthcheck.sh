@@ -30,6 +30,7 @@ function check_json() {
                 exit 0;
             else
                 echo -e "CRITICAL - liveness status is [${STATUS}], expected [OK] - check gitlab UI.";
+                exit 2;
             fi;
         ;;
 
@@ -43,12 +44,13 @@ function check_json() {
                 exit 0;
             else
                 echo -e "CRITICAL - front-end status is [${STATUS}], expected [OK]";
+                exit 3;
             fi;            
         ;;
 
         *)
             echo -e "Unrecognized type - available types [liveness|readiness]!";
-            exit 2;
+            exit 4;
         ;;
     esac;
 }
