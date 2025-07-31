@@ -1,0 +1,62 @@
+#!/usr/bin/awk -f
+
+#
+# @author Tomas Henzl (tomas.henzl@webglobe.com)
+#
+# changelog:
+#   2025/07/31 - created
+#
+
+BEGIN {
+	PREV_FILE="/tmp/check_network_tmp"
+	CURR_FILE="/proc/net/dev"
+
+	n = getline < PREV_FILE
+	if(n <=0 ) {
+		print "No previus data found, run me again."
+		print "timestamp: " systime() > PREV_FILE
+		system("cat " CURR_FILE " >> " PREV_FILE)
+		exit 3
+	}
+	close(PREV_FILE)
+
+	cmd = "ip route show default"
+	cmd | getline
+	for (i=1; i<=NF; i++) {
+		if ($i == "dev") default_interface = $++i
+	}
+	close(cmd)
+
+	while ((getline < PREV_FILE) > 0 ) {
+		if ($0 ~ "\\|")   continue
+		if ($1 == "lo:" ) continue
+		if ($1 == "timestamp:" ) { timestamp_prev = $NF; continue; }
+		sub(/:$/, "", $1)
+		rx_prev[$1] = $2
+		tx_prev[$1] = $10
+	}
+	close(PREV_FILE)
+
+	timestamp_diff = systime() - timestamp_prev
+
+	while ((getline < CURR_FILE) > 0 ) {
+		if ($0 ~ "\\|")   continue
+		if ($1 == "lo:" ) continue
+		sub(/:$/, "", $1)
+
+		rx = (($2  - rx_prev[$1]) / 1024) / timestamp_diff
+		tx = (($10 - tx_prev[$1]) / 1024) / timestamp_diff
+
+		if ($1 == default_interface) printf("IN: %.2f KB/s OUT: %.2f KB/s|", rx, tx)
+
+		perf_data = perf_data sprintf("%s_rx=%.2f; ", $1, rx)
+		perf_data = perf_data sprintf("%s_tx=%.2f; ", $1, tx)
+	}
+	close(CURR_FILE)
+
+	sub(/; $/, "", perf_data)
+	print perf_data
+
+	print "timestamp: " systime() > PREV_FILE
+	system("cat " CURR_FILE " >> " PREV_FILE)
+}
