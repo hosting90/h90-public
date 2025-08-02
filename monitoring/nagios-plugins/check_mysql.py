@@ -17,9 +17,10 @@ def main(args):
   try:
     if sys.argv[1] == 'mariadb':
       p = Popen(
-        ['/usr/bin/sudo', 'docker', 'exec', '-u', 'root', '-i', 'c-' + sys.argv[1], 'mariadb-admin', 'ping'],
+        '/usr/bin/sudo docker exec -u root -i c-' + sys.argv[1] + ' /bin/bash -c "if which mariadb-admin; then mariadb-admin ping; else mysqladmin ping; fi"',
         stdout=PIPE,
-        stderr=PIPE
+        stderr=PIPE,
+        shell=True
       )
     else:
       p = Popen(
