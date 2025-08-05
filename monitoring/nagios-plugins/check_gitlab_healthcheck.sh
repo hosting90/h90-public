@@ -58,6 +58,8 @@ function check_json() {
 #   script body
 check_input;
 check_json "liveness";
-check_json "readiness"
+check_json "readiness";
+
+echo "OK";
 
 exit;
