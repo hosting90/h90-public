@@ -45,4 +45,6 @@ function check_process_limit() {
 check_input;
 check_process_limit;
 
+echo "OK";
+
 exit;
