@@ -102,6 +102,24 @@ function check_input() {
         ;;
     esac;
 
+    #   if isn't defined - default system value
+    if [[ -z "${APACHE_MAX_SERVERS}" ]];
+    then
+        case ${APACHE_MPM} in
+            "prefork")
+                APACHE_MAX_SERVERS=256;
+            ;;
+
+            "worker")
+                APACHE_MAX_SERVERS=16;
+            ;;
+
+            "event")
+                APACHE_MAX_SERVERS=16;
+            ;;
+        esac;
+    fi;
+
     #   calculating values
     percent_usage=$((APACHE_ACTUALL_SERVERS * 100 / APACHE_MAX_SERVERS));
 
