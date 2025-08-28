@@ -31,7 +31,7 @@ function check_input() {
     case "${APACHE_MPM}" in
         "prefork")
             for folder in /usr/local/apache /usr/local/apache2 /etc/apache2 /etc/httpd/; do
-                if [[ -d "${folder}" ]];
+                if [[ -d "${folder}" && ! "${folder}" =~ ^/etc/apache2/ssl ]];
                 then
                     for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do 
                         if [[ ${file} =~ \.conf$|\.ini$ ]];
@@ -55,7 +55,7 @@ function check_input() {
 
         "worker")
             for folder in /usr/local/apache /usr/local/apache2 /etc/apache2 /etc/httpd/; do
-                if [[ -d "${folder}" ]];
+                if [[ -d "${folder}" && ! "${folder}" =~ ^/etc/apache2/ssl ]];
                 then
                     for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do 
                         if [[ ${file} =~ \.conf$|\.ini$ ]];
@@ -79,7 +79,7 @@ function check_input() {
         
         "event")
             for folder in /usr/local/apache /usr/local/apache2 /etc/apache2 /etc/httpd/; do
-                if [[ -d "${folder}" ]];
+                if [[ -d "${folder}" && ! "${folder}" =~ ^/etc/apache2/ssl ]];
                 then
                     for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do 
                         if [[ ${file} =~ \.conf$|\.ini$ ]];
