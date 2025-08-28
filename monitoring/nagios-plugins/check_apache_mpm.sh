@@ -13,7 +13,7 @@ APACHE_ACTUALL_SERVERS="";
 #   functions
 function check_input() {
     #   check which MPM server use
-    APACHE_MPM=$(apachectl -V | grep -i "mpm" | awk -F ":" '{print $2}' | xargs);
+    APACHE_MPM=$(apachectl -V 2>/dev/null | grep -i "mpm" | awk -F ":" '{print $2}' | xargs);
 
     #   check apache actuall servers
     if [[ $(pgrep apache | wc -l) -eq 0 && $(pgrep httpd | wc -l) -eq 0 ]];
@@ -36,7 +36,7 @@ function check_input() {
                     for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do 
                         if [[ ${file} =~ \.conf$|\.ini$ ]];
                         then
-                            APACHE_MAX_SERVERS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | awk '{print $2}');
+                            APACHE_MAX_SERVERS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
                         fi;
 
                         if [[ ! -z ${APACHE_MAX_SERVERS} ]];
@@ -60,7 +60,7 @@ function check_input() {
                     for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do 
                         if [[ ${file} =~ \.conf$|\.ini$ ]];
                         then
-                            APACHE_MAX_SERVERS=$(cat ${file} | grep -A 8 "${APACHE_MPM}" | grep -i "ServerLimit" | awk '{print $2}');
+                            APACHE_MAX_SERVERS=$(cat ${file} | grep -A 8 "${APACHE_MPM}" | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
                         fi;
 
                         if [[ ! -z ${APACHE_MAX_SERVERS} ]];
@@ -84,7 +84,7 @@ function check_input() {
                     for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do 
                         if [[ ${file} =~ \.conf$|\.ini$ ]];
                         then
-                            APACHE_MAX_SERVERS=$(cat ${file} | grep -A 8 "${APACHE_MPM}" | grep -i "ServerLimit" | awk '{print $2}');
+                            APACHE_MAX_SERVERS=$(cat ${file} | grep -A 8 "${APACHE_MPM}" | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
                         fi;
 
                         if [[ ! -z ${APACHE_MAX_SERVERS} ]];
