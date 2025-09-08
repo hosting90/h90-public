@@ -244,11 +244,11 @@ function print_values() {
 
     case "${APACHE_MPM}" in
         "prefork")
-            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_SERVERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_SERVERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";
+            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_WORKERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_WORKERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";
         ;;
 
         "worker"|"event")
-            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_SERVERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_SERVERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_threads=${APACHE_ACTUALL_THREADS};$((APACHE_MAX_THREADS*80/100));$((APACHE_MAX_THREADS*90/100));0;${APACHE_MAX_THREADS} apache_threads_percent=${percent_threads_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";        
+            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_WORKERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_WORKERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_threads=${APACHE_ACTUALL_THREADS};$((APACHE_MAX_THREADS*80/100));$((APACHE_MAX_THREADS*90/100));0;${APACHE_MAX_THREADS} apache_threads_percent=${percent_threads_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";        
         ;;
     esac;
 }
