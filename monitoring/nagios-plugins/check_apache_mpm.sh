@@ -194,6 +194,18 @@ function check_event() {
                     APACHE_MAX_WORKERS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
                     APACHE_MAX_CONN=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "MaxRequestWorkers" | sed '/^#/d' | awk '{print $2}');
                     APACHE_THREADS_PER_CHILD=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ThreadsPerChild" | sed '/^#/d' | awk '{print $2}');
+
+                    #   if least one variable isn't empty
+                    if [[ ! -z "${APACHE_MAX_WORKERS}" || ! -z "${APACHE_MAX_CONN}" || ! -z "${APACHE_THREADS_PER_CHILD}" ]];
+                    then
+                        break;
+                    fi;
+                fi;
+
+                #   if least one variable isn't empty
+                if [[ ! -z "${APACHE_MAX_WORKERS}" || ! -z "${APACHE_MAX_CONN}" || ! -z "${APACHE_THREADS_PER_CHILD}" ]];
+                then
+                    break;
                 fi;
             done;
         fi;
