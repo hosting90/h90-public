@@ -14,11 +14,9 @@ APACHE_BUSY_WORKERS="";
 APACHE_IDLE_WORKERS="";
 APACHE_MAX_WORKERS="";
 APACHE_ACTUALL_WORKERS="";
-APACHE_BUSY_THREADS="";
-APACHE_IDLE_THREADS="";
-APACHE_MAX_THREADS="";
-APACHE_ACTUALL_THREADS="";
 APACHE_THREADS_PER_CHILD="";
+APACHE_MAX_CHILDS="";
+APACHE_ACTUALL_CHILDS="";
 APACHE_MAX_CONN="";
 APACHE_ACTUALL_CONN="";
 CPU_CORES=$(nproc);
@@ -110,6 +108,12 @@ function check_prefork() {
     APACHE_CPU_USAGE=$(echo "scale=2; ${APACHE_CPU_USAGE} / ${CPU_CORES}" | bc);
     APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}');
     APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}');
+
+    #   if directive ServerLimit isn't defined in MPM settings
+    if [[ -z "${APACHE_MAX_WORKERS}" ]];
+    then
+        APACHE_MAX_WORKERS="${APACHE_MAX_CONN}";
+    fi;
 }
 
 #       checking MPM worker
@@ -117,7 +121,8 @@ function check_worker() {
     #   no inputs available
 
     #   MPM worker
-    #   1 process = 1 thread inside server process (each server = process can have ThreadsPerChild)
+    #   1 process in a ps aux / pgrep is a master process (run as root) - can't work with a threads = workers
+    #   ech child (process on ps aux / pgrep without the one as root) can have ThreadsPerChild)
 
     #   apache_actuall_workers = sum of busy and idle threads
     #   apache_max_conn = MaxRequestWorkers
@@ -125,8 +130,12 @@ function check_worker() {
     #   apache_busy_workers = sum of procesing workers
     #   apache_idle_workers = sum of idle workers, that can immedeatelly process the reuqest
     #   apache_threads_per_child = worker threads in each server proecess
-    #   apache_busy_threads = apache_busy_workers * apache_threads_per_child
-    #   apache_idle_threads = apache_idle_workers * apache_threads_per_child
+    #   apache_actuall_childs = pgrep | grep APACHE_PROCESS_NAME | wc -l (minus 1 - the root process)
+    #   apache_max_childs = ServerLimit
+
+    #   actuall running servers (processes=workers=thread)
+    APACHE_ACTUALL_CHILDS=$(pgrep ${APACHE_PROCESS_NAME} | wc -l);
+    ((APACHE_ACTUALL_CHILDS--));
 
     #   check for config file with a defined values
     for folder in /usr/local/apache /usr/local/apache2 /etc/apache2 /etc/httpd/; do
@@ -135,7 +144,7 @@ function check_worker() {
             for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do
                 if [[ "${file}" =~ \.conf$|\.ini$ ]];
                 then
-                    APACHE_MAX_WORKERS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
+                    APACHE_MAX_CHILDS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
                     APACHE_MAX_CONN=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "MaxRequestWorkers" | sed '/^#/d' | awk '{print $2}');
                     APACHE_THREADS_PER_CHILD=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ThreadsPerChild" | sed '/^#/d' | awk '{print $2}');
 
@@ -161,9 +170,14 @@ function check_worker() {
     APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}');
     APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}');
     APACHE_ACTUALL_WORKERS=$((APACHE_BUSY_WORKERS + APACHE_IDLE_WORKERS));
-    APACHE_BUSY_THREADS=$((APACHE_BUSY_WORKERS * APACHE_THREADS_PER_CHILD));
-    APACHE_IDLE_THREADS=$((APACHE_IDLE_WORKERS * APACHE_THREADS_PER_CHILD));
-    APACHE_ACTUALL_THREADS=$((APACHE_BUSY_THREADS + APACHE_IDLE_THREADS));
+
+    #   if ServerLimit isn't defined
+    if [[ -z "${APACHE_MAX_CHILDS}" ]];
+    then        
+        APACHE_MAX_CHILDS=$((APACHE_MAX_CONN / APACHE_THREADS_PER_CHILD));
+    fi;        
+
+    APACHE_MAX_WORKERS=$((APACHE_MAX_CHILDS * APACHE_THREADS_PER_CHILD));
 }
 
 #       checking MPM event
@@ -171,9 +185,8 @@ function check_event() {
     #   no inputs available
 
     #   MPM event
-    #   1 process = 1 thread inside server process (each server = process can have ThreadsPerChild)
-
-    #   MAX THREADS is limited by MaxRequestWorkers (but that a at same time), other limit is ServerLimit * ThreadsPerChild
+    #   1 process in a ps aux / pgrep is a master process (run as root) - can't work with a threads = workers
+    #   ech child (process on ps aux / pgrep without the one as root) can have ThreadsPerChild)
 
     #   apache_actuall_workers = sum of busy and idle threads
     #   apache_max_conn = MaxRequestWorkers
@@ -181,8 +194,12 @@ function check_event() {
     #   apache_busy_workers = sum of procesing workers
     #   apache_idle_workers = sum of idle workers, that can immedeatelly process the reuqest
     #   apache_threads_per_child = worker threads in each server proecess
-    #   apache_busy_threads = apache_busy_workers * apache_threads_per_child
-    #   apache_idle_threads = apache_idle_workers * apache_threads_per_child
+    #   apache_actuall_childs = pgrep | grep APACHE_PROCESS_NAME | wc -l (minus 1 - the root process)
+    #   apache_max_childs = ServerLimit
+
+    #   actuall running servers (processes=workers=thread)
+    APACHE_ACTUALL_CHILDS=$(pgrep ${APACHE_PROCESS_NAME} | wc -l);
+    ((APACHE_ACTUALL_CHILDS--));
 
     #   check for config file with a defined values
     for folder in /usr/local/apache /usr/local/apache2 /etc/apache2 /etc/httpd/; do
@@ -191,7 +208,7 @@ function check_event() {
             for file in $(grep -ri "${APACHE_MPM}" ${folder} | awk -F ":" '{print $1}'); do
                 if [[ "${file}" =~ \.conf$|\.ini$ ]];
                 then
-                    APACHE_MAX_WORKERS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
+                    APACHE_MAX_CHILDS=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ServerLimit" | sed '/^#/d' | awk '{print $2}');
                     APACHE_MAX_CONN=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "MaxRequestWorkers" | sed '/^#/d' | awk '{print $2}');
                     APACHE_THREADS_PER_CHILD=$(cat ${file} | grep -A 8 ${APACHE_MPM} | grep -i "ThreadsPerChild" | sed '/^#/d' | awk '{print $2}');
 
@@ -202,11 +219,11 @@ function check_event() {
                     fi;
                 fi;
 
-                #   if least one variable isn't empty
-                if [[ ! -z "${APACHE_MAX_WORKERS}" || ! -z "${APACHE_MAX_CONN}" || ! -z "${APACHE_THREADS_PER_CHILD}" ]];
-                then
-                    break;
-                fi;
+            #   if least one variable isn't empty
+            if [[ ! -z "${APACHE_MAX_WORKERS}" || ! -z "${APACHE_MAX_CONN}" || ! -z "${APACHE_THREADS_PER_CHILD}" ]];
+            then
+                break;
+            fi;                
             done;
         fi;
     done;
@@ -217,28 +234,19 @@ function check_event() {
     APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}');
     APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}');
     APACHE_ACTUALL_WORKERS=$((APACHE_BUSY_WORKERS + APACHE_IDLE_WORKERS));
-    APACHE_BUSY_THREADS=$((APACHE_BUSY_WORKERS * APACHE_THREADS_PER_CHILD));
-    APACHE_IDLE_THREADS=$((APACHE_IDLE_WORKERS * APACHE_THREADS_PER_CHILD));
-    APACHE_ACTUALL_THREADS=$((APACHE_BUSY_THREADS + APACHE_IDLE_THREADS));
+
+    #   if ServerLimit isn't defined
+    if [[ -z "${APACHE_MAX_CHILDS}" ]];
+    then        
+        APACHE_MAX_CHILDS=$((APACHE_MAX_CONN / APACHE_THREADS_PER_CHILD));
+    fi;        
+
+    APACHE_MAX_WORKERS=$((APACHE_MAX_CHILDS * APACHE_THREADS_PER_CHILD));
 }
 
 #       calculating values
 function calculate_others() {
     #   no inputs available
-
-    #   if ServerLimit isn't defined
-    if [[ -z "${APACHE_MAX_WORKERS}" ]];
-    then
-        case "${APACHE_MPM}" in 
-            "prefork")
-                APACHE_MAX_WORKERS="${APACHE_MAX_CONN}";
-            ;;
-
-            "worker"|"event")
-                APACHE_MAX_WORKERS=$((APACHE_MAX_CONN / APACHE_THREADS_PER_CHILD));
-            ;;
-        esac;
-    fi;
 
     #   percentage values
     percent_workers_usage=$((APACHE_ACTUALL_WORKERS * 100 / APACHE_MAX_WORKERS));
@@ -260,7 +268,7 @@ function print_values() {
         ;;
 
         "worker"|"event")
-            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_WORKERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_WORKERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_threads=${APACHE_ACTUALL_THREADS};$((APACHE_MAX_THREADS*80/100));$((APACHE_MAX_THREADS*90/100));0;${APACHE_MAX_THREADS} apache_threads_percent=${percent_threads_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";        
+            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_childs=${APACHE_ACTUALL_CHILDS};$((APACHE_MAX_CHILDS*80/100));$((APACHE_MAX_CHILDS*90/100));${APACHE_MAX_CHILDS} apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_WORKERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_WORKERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";        
         ;;
     esac;
 }
