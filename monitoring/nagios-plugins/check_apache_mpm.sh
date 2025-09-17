@@ -268,7 +268,7 @@ function print_values() {
         ;;
 
         "worker"|"event")
-            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_childs=${APACHE_ACTUALL_CHILDS};$((APACHE_MAX_CHILDS*80/100));$((APACHE_MAX_CHILDS*90/100));${APACHE_MAX_CHILDS} apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_WORKERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_WORKERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";        
+            echo "Apache MPM ${APACHE_MPM}: ${APACHE_ACTUALL_WORKERS}/${APACHE_MAX_WORKERS} used (${percent_workers_usage}%) | apache_childs=${APACHE_ACTUALL_CHILDS};$((APACHE_MAX_CHILDS*80/100));$((APACHE_MAX_CHILDS*90/100));0;${APACHE_MAX_CHILDS} apache_workers=${APACHE_ACTUALL_WORKERS};$((APACHE_MAX_WORKERS*80/100));$((APACHE_MAX_WORKERS*90/100));0;${APACHE_MAX_WORKERS} apache_workers_percent=${percent_workers_usage};80;90;0;100 apache_cpu_load=${APACHE_CPU_USAGE};80;90;0;100";        
         ;;
     esac;
 }
