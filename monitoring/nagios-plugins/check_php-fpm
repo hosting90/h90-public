@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2025/09/19 - fix compatibility with non GNU awk (mawk)
 #   2025/06/26 - allow special FPM pool variable: VHOST_ROLE_AUTODETECT
 #   2025/01/24 - rewrite to show sockets(always unique) instead of FPM pools
 #   2024/08/27 - added check for cgi-fcgi binary
@@ -24,7 +25,7 @@ for fpm_connection_info in "$@"; do
 
 	if [[ "$socket" == 'VHOST_ROLE_AUTODETECT' ]]; then
 		vhost_role_pools=( $(find /etc/php/*/fpm/pool.d -type f | \
-			xargs -n1 awk '/^listen\s*=/ { listen = $NF }; /^pm.status_path/ { status_path = $NF } END { if(listen && status_path) { print listen ":" status_path } }'
+			xargs -n1 awk '/^listen[[:space:]]*=/ { listen = $NF }; /^pm.status_path/ { status_path = $NF } END { if(listen && status_path) { print listen ":" status_path } }'
 		) )
 		continue
 	fi
