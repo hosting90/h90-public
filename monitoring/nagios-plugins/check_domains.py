@@ -50,7 +50,7 @@ def execute_query(user, password, host, db, query):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--check", choices=["wp", "sk", "cz"], required=True, help="What to check: wp, sk, cz")
+    parser.add_argument("--check", choices=["wp", "en", "sk", "cz"], required=True, help="What to check: wp, en, sk, cz")
     parser.add_argument("--warning", type=int, required=True, help="Warning threshold")
     parser.add_argument("--critical", type=int, required=True, help="Critical threshold")
     args = parser.parse_args()
