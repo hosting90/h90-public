@@ -4,6 +4,7 @@
 # @author Tomas Henzl (tomas.henzl@webglobe.com)
 #
 # changelog:
+#   2025/10/20 - added a support for check SSL Chain (@author Filip Langer (filip.langer@group.one))
 #   2024/09/06 - added support for note
 #   2023/10/20 - show host in output (yes, it's needed)
 #   2023/10/10 - created
@@ -11,12 +12,312 @@
 # https://wiki.webglobe.com/Icinga#https_check
 #
 
+#	---- VARIABLES ----
+tmp_file="/tmp/certificates.tmp";
+s_client_timeout="5";
+
+
+#	---- FUNCTIONS ----
+function cleaning() {
+	#	no inputs values
+	cd /tmp/;
+
+	#	cleaning up previous files
+	for file in $(ls | egrep "^xx[0-9]{2}$|^yy[0-9]{2}$"); do
+		if [[ -f "${file}" ]];
+		then
+			rm "${file}";
+		fi;
+	done;	
+}
+
+function checkExpire() {
+	#	inputs values
+	#	$1	string	end_date
+
+    local end_seconds now_seconds diff_days;
+    end_seconds=$(date -d "${1}" +%s);
+    now_seconds=$(date +%s);
+
+    #   diff (days)
+    diff_days=$(( (end_seconds - now_seconds) / 86400 ));
+
+	if [[ $diff_days -lt 0 ]];
+	then
+		return 1;
+	else
+		return 0;
+	fi;
+}
+
+function splitCerts() {
+	#	inputs values
+	#	$1	string	type (file|crt)
+	#	$2	string	input file
+	#	$3	string	output pattern (etc. xx|yy)
+
+	cd /tmp/;
+
+	case ${1} in
+		"file")
+			csplit -sz -f cert_ -b "%02d.pem" "${2}" '/-----BEGIN CERTIFICATE-----/' '{*}';
+			mv cert_00.pem ${host}.crt;			#	domain cert
+			if ls cert_*.pem >/dev/null 2>&1;
+			then
+				cat cert_*.pem > ${host}.ca.crt;	#	ca cert
+			fi;
+		;;
+
+		"crt")
+			if [[ -z "${3}" ]];
+			then
+				csplit -sz ${2} '/-----BEGIN CERTIFICATE-----/' '{*}';
+			else
+				csplit -f ${3} -sz ${2} '/-----BEGIN CERTIFICATE-----/' '{*}';
+			fi;
+		;;
+	esac;
+}
+
+function returnCN() {
+	#	inputs values
+	#	$1	string	input file
+	local tmp=$(openssl x509 -in ${1} -noout -subject | awk -F "CN=|CN = " '{print $2}');	
+	if [[ $? -gt 0 ]];
+	then
+		return 1;
+	else
+		echo "${tmp}";
+		return 0;
+	fi;
+}
+
+function returnIssuer() {
+	#	inputs values
+	#	$1	string	input file
+	local tmp=$(openssl x509 -in ${1} -noout -issuer | awk -F "O=|O = " '{print $2}' | awk -F "," '{print $1}');	
+	if [[ $? -gt 0 ]];
+	then
+		return 1;
+	else
+		echo "${tmp}";
+		return 0;
+	fi;	
+}
+
+function checkChain() {
+	#	no inputs available
+
+	cd /tmp/;
+
+	cleaning;
+
+	#	connection (save full chain into tmp_file)
+	timeout ${s_client_timeout} openssl s_client -connect "${host}:443" -showcerts </dev/null 2>/dev/null | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' > "${tmp_file}";
+	if [[ $? -gt 0 ]];
+	then
+		echo "ERR - Connection error.";
+		return 1;
+	else
+		#	check if file contains certificates
+		if ! grep -q "BEGIN CERTIFICATE" "${tmp_file}";
+		then
+			echo "ERR - Can't read SSL file";
+			return 1;
+		fi;
+	fi;
+
+	#	split to Domain and CA certs
+	splitCerts "file" "${tmp_file}";
+
+	#	certs analyze
+	local certificates_crt=$(grep -c "BEGIN CERTIFICATE" ${host}.crt);
+	local certificates_ca_crt=$(grep -c "BEGIN CERTIFICATE" ${host}.ca.crt);
+	local common_name;
+	local issuer;
+	local contains;
+	local order;
+	local root_ca;
+	local expire;
+	local state;
+	local h;
+	local k;
+
+	#	null crt => problem
+	if [[ ${certificates_crt} -eq 0 ]];
+	then
+		echo "ERR - Missing Domain certificate!";
+		return 1;
+	fi;
+
+	#	null ca.crt => problem
+	if [[ ${certificates_ca_crt} -eq 0 ]];
+	then
+		echo "ERR - Missing CA certificates!";
+		return 1;
+	fi;
+
+	#	Domain Certificate file
+	splitCerts "crt" "${host}.crt";
+
+	for i in $(seq 0 1 $(( certificates_crt - 1 ))); do
+		if [[ ${#i} -eq 1 ]];
+		then
+			h="xx0${i}";
+		else
+			h="xx${i}";
+		fi;
+		common_name=$(returnCN "${h}");
+		if [[ $? -gt 0 ]];
+		then
+			echo "ERR - Common name read error!";
+			return 1;
+		fi;
+
+		issuer=$(returnIssuer "${h}");
+		if [[ $? -gt 0 ]];
+		then
+			echo "ERR - Issuer read error!";
+			return 1;
+		fi;
+
+        #   in this case (.crt file) must be a issuer cert file in a .ca.crt file
+		splitCerts "crt" "${host}.ca.crt" "yy";
+
+		#	default value
+        contains=false;
+
+        for k in $(ls | egrep "^yy[0-9]{2}$"); do
+            if [[ $(openssl x509 -in ${k} -noout -subject | grep "${issuer}" | wc -l) -gt 0 ]];
+            then
+                contains=true;
+                rm ${k};
+                break;
+            else
+                rm ${k};
+            fi;
+        done;
+		
+		expire=$(checkExpire "$(openssl x509 -in ${h} -noout -enddate | awk -F "=" '{print $2}')");
+		if [[ $? -gt 0 ]];
+		then
+			if [[ ${contains} == true ]];
+			then
+				echo "ERR - Domain Certificate error - [${common_name}] issuer [${issuer}] expired!";
+				return 1;
+			else
+				echo "ERR - Domain Certificate error - [${common_name}] expired and issuer [${issuer}] not included!";
+				return 1;
+			fi;
+		else
+			if [[ ${contains} != true ]];
+			then
+				echo "ERR - Issuer [${issuer}] not included in Chain!";
+				return 1
+			fi;
+		fi;
+	done;
+
+	cleaning;
+
+	#	CA Certificate file
+	splitCerts "crt" "${host}.ca.crt";
+
+	for i in $(seq 0 1 $(( certificates_ca_crt - 1 ))); do
+        #   .ca.crt file
+        #       in this case we need to check if each CA cert is valid and the order is OK and if a certificate is root cert, or not
+
+        if [[ ${#i} -eq 1 ]];
+        then
+            h="xx0${i}";
+        else
+            h="xx${i}";
+        fi;
+
+		common_name=$(returnCN "${h}");
+		if [[ $? -gt 0 ]];
+		then
+			echo "ERR - Common name read error!";
+			return 1;
+		fi;
+
+		issuer=$(returnIssuer "${h}");
+		if [[ $? -gt 0 ]];
+		then
+			echo "ERR - Issuer read error!";
+			return 1;
+		fi;
+
+        #   if the cert is last one, or not
+        if [[ ${i} -eq $(( certificates_ca_crt - 1 )) ]];
+        then
+			#	last cert file
+			#		check if is Root cert or not
+			if [[ "$(openssl x509 -in ${h} -noout -text | grep -A1 "Basic Constraints" | grep "CA:TRUE" | wc -l)" -gt 0 ]];
+			then
+				#	is a Root cert
+				expire=$(checkExpire "$(openssl x509 -in ${h} -noout -enddate | awk -F "=" '{print $2}')");
+				if [[ $? -gt 0 ]];
+				then
+					echo "ERR - Root Certificate error - [${common_name}] expired!";
+					return 1;
+				else
+					continue;
+				fi;
+			fi;
+		else
+			splitCerts "crt" "${host}.ca.crt" "yy";
+
+			#	default value
+			contains=false;
+
+			#	check if CA file contains issuer of this certificate
+			for k in $(ls | egrep "^yy[0-9]{2}$"); do
+				if [[ $(openssl x509 -in ${k} -noout -subject | grep "${issuer}" | wc -l) -gt 0 ]];
+				then
+					contains=true;
+					rm ${k};
+					break;
+				else
+					rm ${k};
+				fi;
+			done;
+
+			expire=$(checkExpire "$(openssl x509 -in ${h} -noout -enddate | awk -F "=" '{print $2}')");
+			if [[ $? -gt 0 ]];
+			then
+				if [[ ${contains} == true ]];
+				then
+					echo "ERR - CA Certificate error - [${common_name}] issuer [${issuer}] expired!";
+					return 1;
+				else
+					echo "ERR - CA Certificate error - [${common_name}] expired and issuer [${issuer}] not included!";
+					return 1;
+				fi;
+			fi;			
+		fi;
+	done;
+
+	echo "OK - SSL Chain.";
+
+	rm cert_??.pem ${host}.crt ${host}.ca.crt;
+}
+
+
+# ---- SCRIPT BODY ----
 for https_host_entry in "$@"; do
     IFS=: read host warn crit note <<< "$https_host_entry"
 
 	[[ -n "$note" ]] && note_f=" (${note})"
 	result+=( "${host}${note_f}: $(/usr/lib64/nagios/plugins/check_http --sni -H "$host" -C "${warn:-4}","${crit:-2}" 2>&1)" )
 	ret=$?
+
+	(( ret > ret_max )) && ret_max=$ret
+
+	#	added information about a chain
+	result+=( "${host}${note_f}: $(checkChain "${host}")" );
+	ret=$?;
+
 	(( ret > ret_max )) && ret_max=$ret
 done
 
