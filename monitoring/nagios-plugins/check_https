@@ -113,7 +113,7 @@ function checkChain() {
 	cleaning;
 
 	#	connection (save full chain into tmp_file)
-	timeout ${s_client_timeout} openssl s_client -connect "${host}:443" -showcerts </dev/null 2>/dev/null | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' > "${tmp_file}";
+	timeout ${s_client_timeout} openssl s_client -connect "${host}:443" -servername ${host} -showcerts </dev/null 2>/dev/null | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' > "${tmp_file}";
 	if [[ $? -gt 0 ]];
 	then
 		echo "ERR - Connection error.";
