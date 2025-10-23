@@ -167,8 +167,8 @@ function check_worker() {
     #   others values (server-status)
     APACHE_CPU_USAGE=$(curl ${CURL_PAR} | grep -i "CPULoad" | awk '{print $2}');
     APACHE_CPU_USAGE=$(echo "scale=2; ${APACHE_CPU_USAGE} / ${CPU_CORES}" | bc);
-    APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}');
-    APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}');
+    APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}' | head -n 1);
+    APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}' | head -n 1);
     APACHE_ACTUALL_WORKERS=$((APACHE_BUSY_WORKERS + APACHE_IDLE_WORKERS));
 
     #   if ServerLimit isn't defined
@@ -231,8 +231,8 @@ function check_event() {
     #   others values (server-status)
     APACHE_CPU_USAGE=$(curl ${CURL_PAR} | grep -i "CPULoad" | awk '{print $2}');
     APACHE_CPU_USAGE=$(echo "scale=2; ${APACHE_CPU_USAGE} / ${CPU_CORES}" | bc);
-    APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}');
-    APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}');
+    APACHE_BUSY_WORKERS=$(curl ${CURL_PAR} | grep -i "BusyWorkers" | awk '{print $2}' | head -n 1);
+    APACHE_IDLE_WORKERS=$(curl ${CURL_PAR} | grep -i "IdleWorkers" | awk '{print $2}' | head -n 1);
     APACHE_ACTUALL_WORKERS=$((APACHE_BUSY_WORKERS + APACHE_IDLE_WORKERS));
 
     #   if ServerLimit isn't defined
