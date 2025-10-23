@@ -9,7 +9,7 @@ APACHE_STATUS_PAGE="http://localhost/server-status?auto";
 APACHE_MPM="";
 APACHE_PROCESS_NAME="";
 APACHE_CPU_USAGE="";
-APACHE_MEM_USAGE=$(ps -C httpd -o rss= | awk '{sum+=$1} END {print sum/1024""}');   # MB
+APACHE_MEM_USAGE=$(ps -C httpd,apache2 -o rss= | awk '{sum+=$1} END {print sum/1024""}');   # MB
 APACHE_BUSY_WORKERS="";
 APACHE_IDLE_WORKERS="";
 APACHE_MAX_WORKERS="";
