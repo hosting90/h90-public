@@ -23,6 +23,8 @@ def main(args):
 	for container in client.containers.list(all=True):
 		if 'c-healtcheck' not in args and container.name == 'c-healtcheck':
 			continue
+		if 'runner-' not in args and container.name.startswith('runner-'):
+			continue
 		if any(re.fullmatch(arg, container.name) for arg in args):
 			container_status[container.name] = container.attrs['State']['Status']
 			if 'Health' in container.attrs['State'] and container.attrs['State']['Health']['Status'] != 'healthy':
