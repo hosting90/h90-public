@@ -413,8 +413,8 @@ if compressValue=='on':
 # Let's build up our perfdata, regardless of what we're checking
 fragPercent=''
 if frag!='':
-    fragPercent=frag.replace("%", "")
-    fragPerfStr="frag="+str(fragPercent)+";"
+    fragPercent=frag.replace("%", "").replace('-', '')
+    fragPerfStr="frag="+str(fragPercent)+"%;"
     if checkFragmentation:
         fragPerfStr=fragPerfStr+str(fragWarnThreshold)+";"+str(fragCritThreshold)+";"
     else:
@@ -424,8 +424,8 @@ if frag!='':
 
 capPercent=''
 if cap!='':
-    capPercent=cap.replace("%", "")
-    capPerfStr="cap="+str(capPercent)+";"
+    capPercent=cap.replace("%", "").replace('-', '')
+    capPerfStr="cap="+str(capPercent)+"%;"
     if checkCapacity:
         capPerfStr=capPerfStr+str(capWarnThreshold)+";"+str(capCritThreshold)+";"
     else:
@@ -447,17 +447,17 @@ if compressRatioValue!='':
 # Sizes can be in K, M, G, or T (maybe P, but I'm not doing this yet)
 if size!='':
     sizeGB = ConvertToGB(size)
-    perfdata+="size="+str(sizeGB)+";;;"
+    perfdata+="size="+str(sizeGB)+"GB;;;"
     perfdata+=" "
 
 if alloc!='':
     allocGB = ConvertToGB(alloc)
-    perfdata+="alloc="+str(allocGB)+";;;"
+    perfdata+="alloc="+str(allocGB)+"GB;;;"
     perfdata+=" "
 
 if free!='':
     freeGB = ConvertToGB(free)
-    perfdata+="free="+str(freeGB)+";;;"
+    perfdata+="free="+str(freeGB)+"GB;;;"
     perfdata+=" "
 
 ##
