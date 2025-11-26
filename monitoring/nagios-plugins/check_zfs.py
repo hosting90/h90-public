@@ -414,7 +414,11 @@ if compressValue=='on':
 fragPercent=''
 if frag!='':
     fragPercent=frag.replace("%", "").replace('-', '')
-    fragPerfStr="frag="+str(fragPercent)+"%;"
+    if fragPercent == '':
+        fragPerfStr="frag=;"
+    else:
+        fragPerfStr="frag="+str(fragPercent)+"%;"
+
     if checkFragmentation:
         fragPerfStr=fragPerfStr+str(fragWarnThreshold)+";"+str(fragCritThreshold)+";"
     else:
@@ -425,7 +429,10 @@ if frag!='':
 capPercent=''
 if cap!='':
     capPercent=cap.replace("%", "").replace('-', '')
-    capPerfStr="cap="+str(capPercent)+"%;"
+    if capPercent == '':
+        capPerfStr="cap=;"
+    else:
+        capPerfStr="cap="+str(capPercent)+"%;"
     if checkCapacity:
         capPerfStr=capPerfStr+str(capWarnThreshold)+";"+str(capCritThreshold)+";"
     else:
@@ -437,12 +444,12 @@ if cap!='':
 if dedup!='':
     dedup_no_x = dedup.rstrip('x')
     perfdata+="dedup="+str(dedup_no_x)
-    perfdata+=" "
+    perfdata+=";;; "
 
 if compressRatioValue!='':
     compressRatioNoX = compressRatioValue.rstrip('x')
     perfdata+="compress_ratio="+str(compressRatioNoX)
-    perfdata+=" "
+    perfdata+=";;; "
 
 # Sizes can be in K, M, G, or T (maybe P, but I'm not doing this yet)
 if size!='':
