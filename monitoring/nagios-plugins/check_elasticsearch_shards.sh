@@ -4,10 +4,14 @@
 #   Author: Filip LANGER
 #   Contact: filip.langer@group.one
 
+#   CHANGELOG:
+#       15.1.2026 - Added a condition for using ES DEFAULT SHARD LIMITS (1000)
+
 #   variables
 ES_URL="https://localhost:9200";
 ES_USER="${1}";
 ES_PASSWORD="${2}";
+ES_DEFAULT_LIMIT=1000;
 
 #   functions
 function check_input() {
@@ -23,6 +27,10 @@ function check_shards() {
 
     total_shards=$(curl -s -k -u "${ES_USER}:${ES_PASSWORD}" "${ES_URL}/_cat/shards" | wc -l);
     shard_limit=$(curl -s -k -u "${ES_USER}:${ES_PASSWORD}" "${ES_URL}/_cluster/settings?include_defaults=true" | jq -r '.persistent.cluster.max_shards_per_node');
+    if [[ "${shard_limit}" == "null" ]];
+    then
+        shard_limit=${ES_DEFAULT_LIMIT};
+    fi;
     node_count=$(curl -s -k -u "${ES_USER}:${ES_PASSWORD}" "${ES_URL}/_cat/nodes?h=name" | wc -l);
     cluster_limit=$((shard_limit * node_count));
     percent_usage=$((total_shards * 100 / cluster_limit));
