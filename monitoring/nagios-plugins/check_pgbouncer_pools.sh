@@ -5,11 +5,12 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       23.03.2026 - Fixed pool_size (max value)
 #       19.03.2026 - First version
 
 #   variables
 tmp_file="/tmp/check_pgbouncer_pools.tmp";
-output="PGBouncer pools: | ";
+output="PGBouncer pools | ";
 password="${1}";
 
 #   functions
@@ -27,10 +28,10 @@ function check_pools() {
     #   no inputs available
 
     for pool in $(cat ${tmp_file} | awk -F "|" '{print $1}'); do
-        max_conn=$(cat ${tmp_file} | egrep "^${pool}" | awk -F "|" '{print $12}');
+        pool_size=$(cat ${tmp_file} | egrep "^${pool}" | awk -F "|" '{print $6}');
         curr_conn=$(cat ${tmp_file} | egrep "^${pool}" | awk -F "|" '{print $13}');
 
-        output="${output} ${pool}_usage=${curr_conn};$((max_conn*80/100));$((max_conn*90/100));0;${max_conn}";
+        output="${output} ${pool}_usage=${curr_conn};$((pool_size*80/100));$((pool_size*90/100));0;${pool_size}";
     done;
 
     echo $output;
