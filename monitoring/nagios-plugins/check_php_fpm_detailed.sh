@@ -94,11 +94,12 @@ case ${1} in
                 if [[ -f "${pool_file}" ]];
                 then
                     pool_name=$(cat ${pool_file} | grep "pool:" | awk '{print $2}');
-                    idle_processes=$(cat ${pool_file} | grep "idle processes:" | awk '{print $3}');
+                    total_children=$(cat /etc/php/${version}/fpm/pool.d/${pool} | egrep "^pm.max_children" | awk '{print $3}' | egrep -o "[0-9]*");
                     total_processes=$(cat ${pool_file} | grep "total processes:" | awk '{print $3}');
+                    idle_processes=$(( total_children - total_processes ));
 
-                    info_text="${info_text} ${pool_name}_${version} (${idle_processes}/${total_processes})";
-                    result="${result} ${pool_name}_${version}_pool_free=${idle_processes};5;2;0;${total_processes}";
+                    info_text="${info_text} ${pool_name}_${version} (${idle_processes}/${total_children})";
+                    result="${result} ${pool_name}_${version}_pool_free=${idle_processes};$(( total_children*80/100 ));$(( total_children*90/100));0;${total_children}";
 
                     if [[ ${idle_processes} -eq 0 ]];
                     then
@@ -139,26 +140,9 @@ case ${1} in
     ;;
 
     "max_memory")
-        mem_used=0;
         mem_total_gb=$(free -g | grep "Mem:" | awk '{print $2}');
-
-        for version in $(ps aux | grep php | grep master | awk '{print $14}' | egrep -o "[0-9]\.[0-9]*"); do
-            for pool in $(ls /etc/php/${version}/fpm/pool.d/); do
-                read_values "${1}" "${version}" "${pool}";
-
-                pool_file="${tmp_file}_${pool}";
-
-                if [[ -f "${pool_file}" ]];
-                then
-                    memory_peak=$(cat ${pool_file} | grep "memory peak:" | awk '{print $3}');
-
-                    mem_used=$(( mem_used + memory_peak ));
-                fi;
-            done;
-        done;
-
-        #   convert values
-        mem_used_gb=$(( mem_used / 1000000000 ));
+        mem_used_percent=$(ps aux | grep "php-fpm: pool" | awk '{sum += $4} END {print sum}');
+        mem_used_gb=$(printf "%.2f" $(echo "$mem_total_gb * $mem_used_percent / 100" | bc -l));
 
         output="${output} PHP FPM total RAM use (${mem_used_gb}/${mem_total_gb}GB) | total_fpm_mem_used=${mem_used_gb};$((mem_total_gb*80/100));$((mem_total_gb*90/100));0;${mem_total_gb} system_total_mem=${mem_total_gb};;;;";
     ;;
