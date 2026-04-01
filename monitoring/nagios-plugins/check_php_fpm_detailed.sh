@@ -99,7 +99,7 @@ case ${1} in
                     idle_processes=$(( total_children - total_processes ));
 
                     info_text="${info_text} ${pool_name}_${version} (${idle_processes}/${total_children})";
-                    result="${result} ${pool_name}_${version}_pool_free=${idle_processes};$(( total_children*80/100 ));$(( total_children*90/100));0;${total_children}";
+                    result="${result} ${pool_name}_${version}_pool_free=${idle_processes};$(( total_children - (total_children*80/100) ));$(( total_children - (total_children*90/100) ));0;${total_children}";
 
                     if [[ ${idle_processes} -eq 0 ]];
                     then
