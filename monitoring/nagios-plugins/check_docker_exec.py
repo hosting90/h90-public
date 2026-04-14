@@ -66,7 +66,7 @@ def main(args):
 					ret_code = UNKNOWN
 					ret_msg += f'{service} not present in supervisorctl status output!!!\n'
 				else:
-					if service_status[service] != 'RUNNING':
+					if service_status[service] not in ['RUNNING', 'STOPPED']:
 						if ret_code < CRITICAL:
 							ret_code = CRITICAL
 						ret_msg += f'{service} is {service_status[service]}!!!\n'
