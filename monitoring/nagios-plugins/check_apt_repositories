@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#
+# check if apt-get update is without errors/warnings
+# useful for detecting problems with repositories and expired keys
+#
+# possible arguments:
+#   --include-warnings
+#
+
+err=`mktemp`
+
+apt-get update > /dev/null 2> $err
+rc=$?
+
+grep '^E:' $err >/dev/null && {
+  cat $err
+  rm -f $err
+  exit 2
+}
+
+grep '^W:' $err >/dev/null && {
+  if [ "$1" == "--include-warnings" ]; then
+    cat $err
+    rm -f $err
+    exit 1
+  fi
+}
+
+if [ $rc -ne 0 ]; then
+  echo "apt update return code $rc"
+  rm -f $err
+  exit 2
+fi
+
