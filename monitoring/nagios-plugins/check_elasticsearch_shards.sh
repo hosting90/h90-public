@@ -20,6 +20,12 @@ function check_input() {
         echo -e "Missing params!\nUsage: ${0} <es_user> <es_password>";
         exit 1;
     fi;
+
+    curl -s -k "${ES_URL}";
+    if [[ $? -gt 0 ]];
+    then
+        ES_URL="http://localhost:9200";
+    fi;
 }
 
 function check_shards() {
@@ -27,7 +33,7 @@ function check_shards() {
 
     total_shards=$(curl -s -k -u "${ES_USER}:${ES_PASSWORD}" "${ES_URL}/_cat/shards" | wc -l);
     shard_limit=$(curl -s -k -u "${ES_USER}:${ES_PASSWORD}" "${ES_URL}/_cluster/settings?include_defaults=true" | jq -r '.persistent.cluster.max_shards_per_node');
-    if [[ "${shard_limit}" == "null" ]];
+    if [[ "${shard_limit}" == "null" ]] || [[ -z "${shard_limit}" ]];
     then
         shard_limit=${ES_DEFAULT_LIMIT};
     fi;
