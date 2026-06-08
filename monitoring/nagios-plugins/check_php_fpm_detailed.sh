@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       08.06.2026 - Fixed wrong pool_memory calculating
 #       30.03.2026 - First version
 
 #   variables
@@ -130,10 +131,11 @@ case ${1} in
                 if [[ -f "${pool_file}" ]];
                 then
                     pool_name=$(cat ${pool_file} | grep "pool:" | awk '{print $2}');
-                    memory_peak=$(cat ${pool_file} | grep "memory peak:" | awk '{print $3}');
-                    memory_peak_mb=$(( memory_peak / 1000000 ));
+                    mem_total_mb=$(free -m | grep "Mem:" | awk '{print $2}');
+                    mem_used_percent=$(ps aux | egrep "php-fpm: pool ${pool_name}$" | awk '{sum += $4} END {print sum}');
+                    mem_used_mb=$(printf "%.2f" $(echo "$mem_total_mb * $mem_used_percent / 100" | bc -l));
 
-                    output="${output} ${pool_name}_${version}_memory_usage=${memory_peak_mb};;;;";
+                    output="${output} ${pool_name}_${version}_memory_usage=${mem_used_mb};;;;";
                 fi;
             done;
         done;
