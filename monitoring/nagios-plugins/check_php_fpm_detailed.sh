@@ -152,4 +152,4 @@ esac;
 
 echo ${output};
 
-exit;
+exit ${end_code:-0};
