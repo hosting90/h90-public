@@ -58,14 +58,14 @@ case ${1} in
         result="";
         end_code=0;
 
-        mem_cur=$(systemctl show sentry-relay -p MemoryCurrent --value | awk '{printf "%.1f", $1/1024/1024}');
-        mem_high=$(systemctl show sentry-relay -p MemoryHigh --value | awk '{printf "%.1f", $1/1024/1024}');
-        mem_max=$(systemctl show sentry-relay -p MemoryMax --value | awk '{printf "%.1f", $1/1024/1024}');
+        mem_cur=$(( $(systemctl show sentry-relay -p MemoryCurrent --value) / 1024 / 1024 ));
+        mem_high=$(( $(systemctl show sentry-relay -p MemoryHigh --value) / 1024 / 1024 ));
+        mem_max=$(( $(systemctl show sentry-relay -p MemoryMax --value) / 1024 / 1024 ));
 
         info_text="${info_text} (${mem_cur}/${mem_high}/${mem_max})";
         result="${result} sentry_relay_ram_usage=${mem_cur};${mem_high};$(( (mem_high + mem_max) / 2 ));0;${mem_max}";
 
-        if [[ ${mem_cur }] -ge ${mem_high} ]] && [[ ${mem_cur} -lt ${mem_max} ]];
+        if [[ ${mem_cur} -ge ${mem_high} ]] && [[ ${mem_cur} -lt ${mem_max} ]];
         then
             end_code=1;
         elif [[ ${mem_cur} -ge ${mem_max} ]];
@@ -90,14 +90,14 @@ case ${1} in
         result="";
         end_code=0;
 
-        log_warning_counter=$(systemctl -u sentry-relay --since "${check_last_minutes}" --no-pager | grep "WARN" | wc -l);
-        log_unknown_counter=$(systemctl -u sentry-relay --since "${check_last_minutes}" --no-pager | grep -v "INFO" | grep -v "WARN" | grep -v "ERROR" | wc -l);
-        log_error_counter=$(systemctl -u sentry-relay --since "${check_last_minutes}" --no-pager | grep "ERROR" | wc -l);
+        log_warning_counter=$(journalctl -u sentry-relay --since "${check_last_minutes} minutes ago" --no-pager | grep "WARN" | wc -l);
+        log_unknown_counter=$(journalctl -u sentry-relay --since "${check_last_minutes} minutes ago" --no-pager | grep -v "INFO" | grep -v "WARN" | grep -v "ERROR" | wc -l);
+        log_error_counter=$(journalctl -u sentry-relay --since "${check_last_minutes} minutes ago" --no-pager | grep "ERROR" | wc -l);
 
         info_text="${info_text} (${log_warning_counter}/${log_unknown_counter}/${log_error_counter})";
         result="${result} sentry_relay_warning_msg=${log_warning_counter};1;1;0; sentry_relay_unknown_msg=${log_unknown_counter};1;1;0; sentry_relay_error_msg=${log_error_counter};1;1;0;";
 
-        if [[ ${log_warning_counter }] -ne 0 ]] || [[ ${log_unknown_counter }] -ne 0 ]] || [[ ${log_error_counter }] -ne 0 ]];
+        if [[ ${log_warning_counter} -ne 0 ]] || [[ ${log_unknown_counter} -ne 0 ]] || [[ ${log_error_counter} -ne 0 ]];
         then
             end_code=1;
         fi;
