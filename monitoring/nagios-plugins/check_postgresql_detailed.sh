@@ -252,7 +252,7 @@ case ${1} in
         actuall_value=$(cat ${tmp_file} | awk -F "|" '{print $1}');
         max_value=$(cat ${tmp_file} | awk -F "|" '{print $2}');
 
-        if [[ ${max_value} -gt ${actuall_value} ]];
+        if [[ ${actuall} -gt ${max_value} ]];
         then
             end_code=1;
         fi;
