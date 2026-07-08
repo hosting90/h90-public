@@ -321,10 +321,11 @@ case ${1} in
         if [[ ${actual_size} -lt ${max_size} ]];
         then
             end_code=0;
-        elif [[ ${actual_size} -gt $(( max_size / 100 * 150 )) ]];
+        elif [[ ${actual_size} -gt $(( max_size / 100 * 150 )) ]] && [[ "${actual_size}" -lt $(( max_size / 100 * 200 )) ]];
         then
             end_code=1;
-        else
+        elif [[ ${actual_size} -gt $(( max_size / 100 * 200 )) ]];
+        then
             end_code=2;
         fi;
 
