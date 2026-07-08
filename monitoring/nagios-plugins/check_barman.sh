@@ -8,6 +8,7 @@
 #       08.07.2026 - Updated list-backups (now checking separately full and inc backups)
 #               - New check for error logs (backuping error logs)
 #               - New check for creating graphs of backup folders (disk-space)
+#               - New check (last archived wal file)
 #       07.07.2026 - First version
 
 #   variables
@@ -63,6 +64,10 @@ function read_values() {
         "space")
             local backup_folder=$(sudo -n -u barman barman show-server ${cluster_hostname} | grep "backup_directory" | awk -F ": " '{print $2}');
             sudo -n -u barman du -b --max-depth=1 "${backup_folder}/" | awk '{printf "%.2f GiB\t%s\n", $1/1024/1024/1024, $2}' > ${tmp_file};  # in GiB
+        ;;
+
+        "last_wal")
+            su - postgres -c "psql -Atqc \"SELECT CASE WHEN last_failed_time IS NULL OR last_archived_time > last_failed_time THEN 'OK' ELSE 'CRITICAL' END FROM pg_stat_archiver;\"" > ${tmp_file};
         ;;
 
         *)
@@ -194,6 +199,32 @@ case ${1} in
         else
             output="${output} PROBLEM - NOT ENOUGH SPACE: ${info_text} | ${result}";        
         fi;         
+    ;;
+
+    "last_wal")
+        info_text="${1} ${cluster_hostname} Last archived WAL status ";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        if [[ "$(cat ${tmp_file} | grep "OK" | wc -l)" -eq 0 ]];
+        then
+            info_text="${info_text} Wal file failed to archive";
+            end_code=1;
+        else
+            info_text="${info_text} Wal file archived successfully";
+        fi;
+
+        result="last_archived_wal_err=${end_code};0;1;1;1";
+
+        #   return info
+        if [[ ${end_code} -eq 0 ]];
+        then
+            output="${output} OK: ${info_text} | ${result}";
+        else
+            output="${output} PROBLEM - ${info_text} | ${result}";        
+        fi;    
     ;;
 esac;
 
