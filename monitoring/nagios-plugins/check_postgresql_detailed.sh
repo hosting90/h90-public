@@ -94,6 +94,17 @@ function read_values() {
                 error "Error while checking vacuum usage!";
             fi;            
         ;;
+        "wal_size")
+            local max_size=$(su - postgres -c 'psql -Atqc "SELECT pg_size_bytes(current_setting('\''max_wal_size'\''));"')
+            if [[ $? -gt 0 ]];
+            then
+                error "Error while checking wal_size!";
+            fi;
+
+            local folder_usage=$(du -sb "/var/lib/postgresql/${postgresql_major_version}/main/pg_wal/" | awk '{print $1}');
+
+            echo -e "${folder_usage}|${max_size}" > ${tmp_file};
+        ;;
     esac;
 }
 
@@ -271,7 +282,7 @@ case ${1} in
     ;;
 
     "autovacuum")
-        info_text="${1} Tabled need to be vacuued [count]";
+        info_text="${1} Tables need to be vacuued [count]";
         result="";
         end_code=0;
 
@@ -295,6 +306,49 @@ case ${1} in
         else
             warning "${output} PROBLEM: ${info_text} | ${result}";        
         fi;   
+    ;;
+
+    "wal_size")
+        info_text="${1} wal files space usage [GB] (wal_folder/max_wal_size)";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        actual_size=$(cat ${tmp_file} | awk -F "|" '{print $1}');
+        max_size=$(cat ${tmp_file} | awk -F "|" '{print $2}');
+
+        if [[ ${actual_size} -lt ${max_size} ]];
+        then
+            end_code=0;
+        elif [[ ${actual_size} -gt $(( max_size / 100 * 150 )) ]];
+        then
+            end_code=1;
+        else
+            end_code=2;
+        fi;
+
+        actual_gib=$(awk "BEGIN {printf \"%.2f\", $actual_size/1024/1024/1024}");
+        max_gib=$(awk "BEGIN {printf \"%.2f\", $max_size/1024/1024/1024}");
+        warning=$(awk "BEGIN {printf \"%.2f\", $max_gib*1.5}");
+        critical=$(awk "BEGIN {printf \"%.2f\", $max_gib*2}");
+
+        info_text="${info_text} (${actual_gib}/${max_gib})";        
+
+        result="actual_wal_size=${actual_gib};${warning};${critical};0;";
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;
     ;;
 esac;
 
