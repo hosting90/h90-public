@@ -9,6 +9,7 @@
 #               - New check for error logs (backuping error logs)
 #               - New check for creating graphs of backup folders (disk-space)
 #               - New check (last archived wal file)
+#               - Fixed exit codes for icinga2
 #       07.07.2026 - First version
 
 #   variables
@@ -23,7 +24,14 @@ function error() {
     #   inputs values
     #   $1  string  message
 
-    output="${output} ERROR: ${1}";
+    echo "${1}";
+    exit 2;
+}
+
+function warning() {
+    #   inputs values
+    #   $1  string  message
+    echo "${1}";
     exit 1;
 }
 
@@ -95,7 +103,7 @@ case ${1} in
         then
             output="${output} OK | ${result}";
         else
-            output="${output} PROBLEM | ${result}";
+            error "${output} PROBLEM | ${result}"
         fi;
     ;;
 
@@ -105,6 +113,11 @@ case ${1} in
         end_code=0;
 
         read_values "${1}";
+        if [[ $? -gt 0 ]];
+        then
+            error "${info_text} (0/22) | failed_tasks=22;1;1;0;22";
+        fi;
+        
         counter_ok=$(cat ${tmp_file} | grep -i "OK" | wc -l);
         counter_failed=$(cat ${tmp_file} | grep "FAILED" | wc -l);
 
@@ -124,7 +137,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;
     ;;
 
@@ -134,6 +147,11 @@ case ${1} in
         end_code=0;
 
         read_values "${1}";
+        if [[ $? -gt 0 ]];
+        then
+            error "${info_text} (0/0) | number_of_full_backups=0;0;0;0; number_of_inc_backups=0;0;0;0;";
+        fi;
+
         counter_full_backups=$(cat ${tmp_file} | grep "\- F \-" | wc -l);
         counter_inc_backups=$(cat ${tmp_file} | grep "\- I \-" | wc -l);
 
@@ -150,7 +168,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM - NO BACKUPS AVAILABLE: ${info_text} | ${result}";        
+            error "${output} PROBLEM - NO BACKUPS AVAILABLE: ${info_text} | ${result}";        
         fi;    
     ;;
 
@@ -160,6 +178,11 @@ case ${1} in
         end_code=0;
 
         read_values "${1}";
+        if [[ $? -gt 0 ]];
+        then
+            error "${info_text} (9/9) | number_of_full_errors=9;1;1;0; number_of_inc_errors=9;1;1;0;";
+        fi;
+        
         counter_full_errors=$(cat ${tmp_file}_full | grep "ERROR" | wc -l);
         counter_inc_errors=$(cat ${tmp_file}_inc | grep "ERROR" | wc -l);
 
@@ -176,7 +199,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM - BACKUPING ERRORS FOUND: ${info_text} | ${result}";        
+            error "${output} PROBLEM - BACKUPING ERRORS FOUND: ${info_text} | ${result}";        
         fi;        
     ;;
 
@@ -186,6 +209,11 @@ case ${1} in
         end_code=0;
 
         read_values "${1}";
+        if [[ $? -gt 0 ]];
+        then
+            error "${info_text} (0/0) | base_backups_gb=0;;;0; wal_gb=0;;;0;";
+        fi;
+
         base_gb=$(cat ${tmp_file} | grep "/base" | awk '{print $1}');
         wal_gb=$(cat ${tmp_file} | grep "/wals" | awk '{print $1}');
 
@@ -197,7 +225,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM - NOT ENOUGH SPACE: ${info_text} | ${result}";        
+            warning "${output} PROBLEM - NOT ENOUGH SPACE: ${info_text} | ${result}";        
         fi;         
     ;;
 
@@ -207,6 +235,10 @@ case ${1} in
         end_code=0;
 
         read_values "${1}";
+        if [[ $? -gt 0 ]];
+        then
+            error "${info_text} Error while reading info. | last_archived_wal_err=1;1;1;0;1";
+        fi;
 
         if [[ "$(cat ${tmp_file} | grep "OK" | wc -l)" -eq 0 ]];
         then
@@ -223,7 +255,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM - ${info_text} | ${result}";        
+            warning "${output} PROBLEM - ${info_text} | ${result}";        
         fi;    
     ;;
 esac;

@@ -18,7 +18,14 @@ function error() {
     #   inputs values
     #   $1  string  message
 
-    output="${output} ERROR: ${1}";
+    echo "${1}";
+    exit 2;
+}
+
+function warning() {
+    #   inputs values
+    #   $1  string  message
+    echo "${1}";
     exit 1;
 }
 
@@ -109,7 +116,7 @@ case ${1} in
         then
             output="${output} OK | ${result}";
         else
-            output="${output} PROBLEM | ${result}";
+            error "${output} PROBLEM | ${result}";
         fi;
     ;;
 
@@ -129,7 +136,7 @@ case ${1} in
         then
             output="${output} OK | ${result}";
         else
-            output="${output} PROBLEM | ${result}";
+            error "${output} PROBLEM | ${result}";
         fi;        
     ;;
 
@@ -150,7 +157,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;
     ;;
 
@@ -177,7 +184,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;
     ;;
 
@@ -204,7 +211,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;        
     ;;
 
@@ -231,7 +238,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;        
     ;;    
 
@@ -259,7 +266,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;        
     ;;
 
@@ -286,7 +293,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            output="${output} PROBLEM: ${info_text} | ${result}";        
+            error "${output} PROBLEM: ${info_text} | ${result}";        
         fi;   
     ;;
 esac;
