@@ -184,7 +184,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            error "${output} PROBLEM: ${info_text} | ${result}";        
+            warning "${output} PROBLEM: ${info_text} | ${result}";        
         fi;
     ;;
 
@@ -211,7 +211,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            error "${output} PROBLEM: ${info_text} | ${result}";        
+            warning "${output} PROBLEM: ${info_text} | ${result}";        
         fi;        
     ;;
 
@@ -238,7 +238,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            error "${output} PROBLEM: ${info_text} | ${result}";        
+            warning "${output} PROBLEM: ${info_text} | ${result}";        
         fi;        
     ;;    
 
@@ -293,7 +293,7 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            error "${output} PROBLEM: ${info_text} | ${result}";        
+            warning "${output} PROBLEM: ${info_text} | ${result}";        
         fi;   
     ;;
 esac;
