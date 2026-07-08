@@ -164,7 +164,7 @@ case ${1} in
         counter_inc_errors=$(cat ${tmp_file}_inc | grep "ERROR" | wc -l);
 
         info_text="${info_text} (${counter_full_errors}/${counter_inc_errors})";
-        result="number_of_full_errors=${counter_full_errors};0;1;1; number_of_inc_errors=${counter_inc_errors};0;1;1;";
+        result="number_of_full_errors=${counter_full_errors};1;1;0; number_of_inc_errors=${counter_inc_errors};1;1;0;";
 
         if [[ "${counter_full_backups}" -gt 0 ]] || [[ "${counter_inc_backups}" -gt 0 ]];
         then
@@ -190,7 +190,7 @@ case ${1} in
         wal_gb=$(cat ${tmp_file} | grep "/wals" | awk '{print $1}');
 
         info_text="${info_text} (${base_gb}/${wal_gb})";
-        result="base_backups_gb=${base_gb};0;;; wal_gb=${wal_gb};0;;;";
+        result="base_backups_gb=${base_gb};;;0; wal_gb=${wal_gb};;;0;";
 
         #   return info
         if [[ ${end_code} -eq 0 ]];
@@ -216,7 +216,7 @@ case ${1} in
             info_text="${info_text} Wal file archived successfully";
         fi;
 
-        result="last_archived_wal_err=${end_code};0;1;1;1";
+        result="last_archived_wal_err=${end_code};1;1;0;1";
 
         #   return info
         if [[ ${end_code} -eq 0 ]];
