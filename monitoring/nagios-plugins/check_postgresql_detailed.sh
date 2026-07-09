@@ -5,10 +5,11 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       09.07.2026 - Fixed wrong tmp_file name
 #       08.07.2026 - First version
 
 #   variables
-tmp_file="/tmp/check_barman_detailed_${1}.tmp";  #  $1 used for specified check
+tmp_file="/tmp/check_postgresql_detailed_${1}.tmp";  #  $1 used for specified check
 postgresql_version="$(psql -V | awk '{print $3}')";
 postgresql_major_version=$(echo "${postgresql_version}" | awk -F "." '{print $1}');
 output="PostgreSQL v.${postgresql_version} ${1}";
