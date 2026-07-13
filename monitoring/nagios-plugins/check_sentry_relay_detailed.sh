@@ -17,6 +17,7 @@ ram_usage_warning=900;      # MiB
 ram_usage_critical=1500;    # MiB
 cpu_usage_warning=50;       # %
 cpu_usage_critical=100;     # %
+check_last_minutes=5;   #   value for checking last X minutes of logs for errors
 
 
 #   functions
@@ -227,6 +228,41 @@ case ${1} in
             ;;
         esac;
     ;;    
+
+    "log")
+        info_text="${1} log (warning/unknown/error)";
+        result="";
+        end_code=0;
+
+        log_warning_counter=$(journalctl -u sentry-relay --since "${check_last_minutes} minutes ago" --no-pager | grep "WARN" | wc -l);
+        log_unknown_counter=$(journalctl -u sentry-relay --since "${check_last_minutes} minutes ago" --no-pager | grep -v "INFO" | grep -v "WARN" | grep -v "ERROR" | wc -l);
+        log_error_counter=$(journalctl -u sentry-relay --since "${check_last_minutes} minutes ago" --no-pager | grep "ERROR" | wc -l);
+
+        info_text="${info_text} (${log_warning_counter}/${log_unknown_counter}/${log_error_counter})";
+        result="${result} sentry_relay_warning_msg=${log_warning_counter};1;1;0; sentry_relay_unknown_msg=${log_unknown_counter};1;1;0; sentry_relay_error_msg=${log_error_counter};1;1;0;";
+
+        if [[ ${log_unknown_counter} -ne 0 ]] && [[ ${log_warning_counter} -eq 0 ]] && [[ ${log_error_counter} -eq 0 ]];
+        then
+            end_code=1;
+        elif [[ ${log_unknown_counter} -ne 0 ]] && [[ ${log_warning_counter} -ne 0 ]] || [[ ${log_error_counter} -ne 0 ]];
+        then
+            end_code=2;
+        fi;
+
+        case "${end_code}" in
+            0)
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+
+            1)
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;        
+    ;;        
 esac;
 
 echo ${output};
