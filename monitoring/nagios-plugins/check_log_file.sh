@@ -93,7 +93,7 @@ function check_outputs() {
         local string_to_search="${strings[i]}";
         local name_of_check="${names[i]}";    
 
-        if [[ $(cat ${tmp_file} | grep "${name_of_check}" | wc -l) -gt 0 ]];
+        if [[ $(cat ${tmp_file} | grep "${name_of_check}" | wc -l 2> /dev/null) -gt 0 ]];
         then
             info_text="${info_text} FOUND in log file [${name_of_check}]!";
             end_code=2;
@@ -102,7 +102,7 @@ function check_outputs() {
 
     case "${end_code}" in
         0)
-            output="${output} OK: ${info_text}";
+            output="${output} OK: No problems found.";
         ;;
 
         1)
