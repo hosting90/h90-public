@@ -5,7 +5,8 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
-#       15.07.2026 - Setted up limits for idle transaction and blocked queries and autovacuum days check
+#       15.07.2026 - Setted up limits for idle transaction and blocked queries
+#                Change whole policy for autovacuum check
 #       09.07.2026 - Fixed wrong tmp_file name
 #       08.07.2026 - First version
 
@@ -18,7 +19,6 @@ idle_transaction_warning=5;
 idle_transaction_critical=15;
 blocked_queries_warning=10;
 blocked_queries_critical=20;
-autovacuum_days_check=3;    #   check if tables are autovacuued once peer X days
 
 #   functions
 function error() {
@@ -95,11 +95,28 @@ function read_values() {
             fi;
         ;;
         "autovacuum")
-            su - postgres -c "psql -Atqc \"SELECT count(*) FROM pg_stat_user_tables WHERE last_autovacuum IS NULL OR last_autovacuum < now()-interval '${autovacuum_days_check} day';\"" > ${tmp_file};
-            if [[ $? -gt 0 ]];
+            if [[ -f "${tmp_file}" ]];
             then
-                error "Error while checking vacuum usage!";
-            fi;            
+                rm ${tmp_file};
+            fi;
+
+            for db in $(su - postgres -c "psql -Atqc \"SELECT datname FROM pg_database WHERE datallowconn = true AND datistemplate = false;\""); do
+                su - postgres -c "psql -d $db -Atqc \"
+                SELECT
+                    '$db' AS database,
+                    schemaname,
+                    relname,
+                    n_live_tup,
+                    n_dead_tup,
+                    last_autovacuum
+                FROM pg_stat_user_tables
+                WHERE n_dead_tup >
+                    (
+                        current_setting('autovacuum_vacuum_threshold')::bigint +
+                        current_setting('autovacuum_vacuum_scale_factor')::numeric * n_live_tup
+                    )
+                ORDER BY n_dead_tup DESC;\"" >> "$tmp_file";
+            done;
         ;;
         "wal_size")
             local max_size=$(su - postgres -c 'psql -Atqc "SELECT pg_size_bytes(current_setting('\''max_wal_size'\''));"')
@@ -311,14 +328,14 @@ case ${1} in
 
         read_values "${1}";
 
-        counter=$(cat ${tmp_file});
+        counter=$(cat ${tmp_file} | wc -l);
 
         if [[ ${counter} -gt 0 ]];
         then
             end_code=1;
         fi;
 
-        info_text="${counter} tables";
+        info_text="${counter} tables (for detailed info check ${tmp_file})";
 
         result="tables_need_autovacuum=${counter};1;1;0;";
 
