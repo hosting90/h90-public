@@ -5,7 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
-#       15.07.2026 - Setted up limits for idle transaction and blocked queries
+#       15.07.2026 - Setted up limits for idle transaction and blocked queries and autovacuum days check
 #       09.07.2026 - Fixed wrong tmp_file name
 #       08.07.2026 - First version
 
@@ -18,6 +18,7 @@ idle_transaction_warning=5;
 idle_transaction_critical=15;
 blocked_queries_warning=10;
 blocked_queries_critical=20;
+autovacuum_days_check=3;    #   check if tables are autovacuued once peer X days
 
 #   functions
 function error() {
@@ -94,7 +95,7 @@ function read_values() {
             fi;
         ;;
         "autovacuum")
-            su - postgres -c "psql -Atqc \"SELECT count(*) FROM pg_stat_user_tables WHERE last_autovacuum IS NULL OR last_autovacuum < now()-interval '1 day';\"" > ${tmp_file};
+            su - postgres -c "psql -Atqc \"SELECT count(*) FROM pg_stat_user_tables WHERE last_autovacuum IS NULL OR last_autovacuum < now()-interval '${autovacuum_days_check} day';\"" > ${tmp_file};
             if [[ $? -gt 0 ]];
             then
                 error "Error while checking vacuum usage!";
