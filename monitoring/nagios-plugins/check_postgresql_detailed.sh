@@ -110,11 +110,17 @@ function read_values() {
                     n_dead_tup,
                     last_autovacuum
                 FROM pg_stat_user_tables
-                WHERE n_dead_tup >
+                WHERE
+                    n_dead_tup >
                     (
                         current_setting('autovacuum_vacuum_threshold')::bigint +
                         current_setting('autovacuum_vacuum_scale_factor')::numeric * n_live_tup
                     )
+                AND
+                (
+                    last_autovacuum IS NULL
+                    OR last_autovacuum < now() - interval '24 hour'
+                )
                 ORDER BY n_dead_tup DESC;\"" >> "$tmp_file";
             done;
         ;;
