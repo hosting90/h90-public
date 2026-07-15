@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       15.07.2026 - Setted up limits for idle transaction and blocked queries
 #       09.07.2026 - Fixed wrong tmp_file name
 #       08.07.2026 - First version
 
@@ -13,6 +14,10 @@ tmp_file="/tmp/check_postgresql_detailed_${1}.tmp";  #  $1 used for specified ch
 postgresql_version="$(psql -V | awk '{print $3}')";
 postgresql_major_version=$(echo "${postgresql_version}" | awk -F "." '{print $1}');
 output="PostgreSQL v.${postgresql_version} ${1}";
+idle_transaction_warning=5;
+idle_transaction_critical=15;
+blocked_queries_warning=10;
+blocked_queries_critical=20;
 
 #   functions
 function error() {
@@ -211,20 +216,28 @@ case ${1} in
 
         info_text="${info_text} ${counter} transactions";
 
-        if [[ ${counter} -gt 0 ]];
+        if [[ ${counter} -ge ${idle_transaction_warning} ]] && [[ ${counter} -lt ${idle_transaction_critical} ]];
         then
             end_code=1;
+        elif [[ "${counter}" -ge ${idle_transaction_critical} ]];
+        then
+            end_code=2;
         fi;
 
-        result="idle_transaction_counter=${counter};1;1;0;";
+        result="idle_transaction_counter=${counter};${idle_transaction_warning};${idle_transaction_critical};0;";
 
         #   return info
-        if [[ ${end_code} -eq 0 ]];
-        then
-            output="${output} OK: ${info_text} | ${result}";
-        else
-            warning "${output} PROBLEM: ${info_text} | ${result}";        
-        fi;        
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;
     ;;
 
     "blocked_queries")
@@ -238,20 +251,28 @@ case ${1} in
 
         info_text="${info_text} ${counter} blocked queries";
 
-        if [[ ${counter} -gt 0 ]];
+        if [[ ${counter} -gt ${blocked_queries_warning} ]] && [[ ${counter} -lt ${blocked_queries_critical} ]];
         then
             end_code=1;
+        elif [[ ${counter} -ge ${blocked_queries_critical} ]];
+        then
+            end_code=2;
         fi;
 
-        result="blocked_queries_counter=${counter};1;1;0;";
+        result="blocked_queries_counter=${counter};${blocked_queries_warning};${blocked_queries_critical};0;";
 
         #   return info
-        if [[ ${end_code} -eq 0 ]];
-        then
-            output="${output} OK: ${info_text} | ${result}";
-        else
-            warning "${output} PROBLEM: ${info_text} | ${result}";        
-        fi;        
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;
     ;;    
 
     "connections_usage")
