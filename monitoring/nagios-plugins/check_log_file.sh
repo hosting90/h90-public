@@ -6,11 +6,13 @@
 
 #   CHANGELOG:
 #       16.07.2026 - Fixed problem with a condition to trigger incident
+#               Changed validation proces of contains a error
 #       14.07.2026 - First version
 
 #   variables
 tmp_file="/tmp/check_log_file.tmp";
 tmp_log_file="/tmp/check_log_file_lines.tmp";
+tmp_log_last_seen="/tmp/check_log_file_last.tmp";
 log_file="${1}";
 last_lines="${2}";
 strings_to_check="${3}";
@@ -65,6 +67,14 @@ function check() {
     then
         error "Error array have different number of elements!";
     fi;
+
+    # create temp files for last record
+    for ((i=0; i<${#strings[@]}; i++)); do
+        if [[ ! -f "${tmp_log_last_seen}_${i}" ]];
+        then
+            touch ${tmp_log_last_seen}_${i};
+        fi;
+    done;
 }
 
 function prepare_outputs() {
@@ -76,10 +86,26 @@ function prepare_outputs() {
         local string_to_search="${strings[i]}";
         local name_of_check="${names[i]}";
 
-        if [[ $(cat ${tmp_log_file} | grep -i "${string_to_search}" | wc -l) -gt 0 ]];
+        if [[ $(cat ${tmp_log_file} | grep -iF "${string_to_search}" | wc -l) -gt 0 ]];
         then
-            echo "${name_of_check}" >> ${tmp_file};
-            break;
+            local last_message="$(cat ${tmp_log_file} | grep -B 1 -iF "${string_to_search}" | tail -n 2 | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?')";
+            if [[ ! -s "${tmp_log_last_seen}_${i}" ]];
+            then
+                #   if file is blank
+                local last_saved_message="16.9.1989-21:30:33";
+            else
+                local last_saved_message="$(cat ${tmp_log_last_seen}_${i})";
+            fi;
+
+
+            if [[ ! -z "${last_saved_message}" ]];
+            then
+                if [[ "$(echo ${last_message} | grep -F "${last_saved_message}" | wc -l)" -eq 0 ]];
+                then
+                    echo "${last_message}" > ${tmp_log_last_seen}_${i};
+                    echo "${name_of_check}" >> ${tmp_file};
+                fi;
+            fi;
         fi;    
     done;
 }
@@ -92,7 +118,7 @@ function check_outputs() {
 
     for ((i=0; i<${#strings[@]}; i++)); do
         local string_to_search="${strings[i]}";
-        local name_of_check="${names[i]}";    
+        local name_of_check="${names[i]}";
 
         if [[ -f "${tmp_file}" ]];
         then
