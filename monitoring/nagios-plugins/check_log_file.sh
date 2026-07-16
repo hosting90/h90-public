@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       16.07.2026 - Fixed problem with a condition to trigger incident
 #       14.07.2026 - First version
 
 #   variables
@@ -93,10 +94,13 @@ function check_outputs() {
         local string_to_search="${strings[i]}";
         local name_of_check="${names[i]}";    
 
-        if [[ $(cat ${tmp_file} | grep "${name_of_check}" | wc -l > /dev/null 2>&1) -gt 0 ]];
+        if [[ -f "${tmp_file}" ]];
         then
-            info_text="${info_text} FOUND in log file [${name_of_check}]!";
-            end_code=2;
+            if [[ $(cat ${tmp_file} | grep "${name_of_check}" | wc -l) -gt 0 ]];
+            then
+                info_text="${info_text} FOUND in log file [${name_of_check}]!";
+                end_code=2;
+            fi;
         fi;
     done;        
 
