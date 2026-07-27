@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       27.07.2026 - Fixed wrong usage of condition to type check
 #       08.07.2026 - Updated list-backups (now checking separately full and inc backups)
 #               - New check for error logs (backuping error logs)
 #               - New check for creating graphs of backup folders (disk-space)
@@ -113,10 +114,6 @@ case ${1} in
         end_code=0;
 
         read_values "${1}";
-        if [[ $? -gt 0 ]];
-        then
-            error "${info_text} (0/22) | failed_tasks=22;1;1;0;22";
-        fi;
         
         counter_ok=$(cat ${tmp_file} | grep -i "OK" | wc -l);
         counter_failed=$(cat ${tmp_file} | grep "FAILED" | wc -l);
