@@ -171,7 +171,7 @@ case ${1} in
             container_cpu=$(echo ${line} | awk '{print $3}' | awk -F "%" '{print $1}');
             container_mem=$(echo ${line} | awk '{print $4}');
 
-            output="${output} ${container_name}_cpu_usage_percent=${container_cpu};;;; ${container_name}_mem_usage_gb=${container_mem};;;;";
+            result="${result} ${container_name}_cpu_usage_percent=${container_cpu};;;; ${container_name}_mem_usage_gb=${container_mem};;;;";
         done < ${tmp_file};
 
         #   return info
@@ -199,7 +199,7 @@ case ${1} in
             container_name=$(echo ${line} | awk '{print $1}');
             container_uptime=$(echo ${line} | awk '{print $2}');
 
-            output="${output} ${container_name}_uptime_days=${container_uptime};;;;";
+            result="${result} ${container_name}_uptime_days=${container_uptime};;;;";
         done < ${tmp_file}
         
         #   return info
@@ -227,7 +227,7 @@ case ${1} in
             container_name=$(echo ${line} | awk '{print $1}');
             container_disk_usage=$(echo ${line} | awk '{print $2}');
 
-            output="${output} ${container_name}_disk_usage_gb=${container_disk_usage};;;;";
+            result="${result} ${container_name}_disk_usage_gb=${container_disk_usage};;;;";
         done < ${tmp_file};
 
         #   return info
