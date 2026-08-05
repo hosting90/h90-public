@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       05.08.2026 - Added options to skipped containers, that client develops
 #       31.07.2026 - First version
 
 #   variables
@@ -12,6 +13,7 @@ tmp_file="/tmp/check_barman_detailed_${1}.tmp";     #  $1 used for specified che
 warning_minutes_trigger=30;
 critical_minutes_trigger=60;
 output="Docker ${1}";
+exclude="${2}";
 
 #   functions
 function error() {
@@ -50,7 +52,14 @@ function read_values() {
 
     case "${cmd}" in
         "containers")
-            docker ps -a > ${tmp_file};
+
+            if [[ -z "${exclude}" ]];
+            then
+                docker ps -a > ${tmp_file};            
+            else
+                docker ps -a | egrep -v "${exclude}" > ${tmp_file};
+            fi;
+
             if [[ $? -gt 0 ]];
             then
                 error "Error while checking actuall docker state!";
@@ -129,17 +138,32 @@ case ${1} in
     ;;
 
     "containers")
-        info_text="${1} Containers (all/ok/problem)";
+        info_text="${1} Containers (all/ok/problem/excluded)";
         result="";
         end_code=0;
 
         read_values "${1}";
         
-        counter_all=$(cat ${tmp_file} | grep -v "CONTAINER ID" | wc -l);
+        counter_all_from_file=$(cat ${tmp_file} | grep -v "CONTAINER ID" | wc -l);
         counter_ok=$(cat ${tmp_file} | grep -v "CONTAINEER ID" | grep "Up " | wc -l);
         counter_problem=$(cat ${tmp_file} | grep -v "CONTAINER ID" | grep -v "Up " | wc -l);
+        
+        if [[ -z "${exclude}" ]];
+        then
+            counter_excluded=0;
+        else
+            if [[ "$(echo ${exclude} | grep -o '|' | wc -l)" -gt 0 ]];
+            then
+                counter_excluded=$(echo ${exclude} | grep -o '|' | wc -l);
+                ((counter_excluded++));
+            else
+                counter_excluded=1;
+            fi;
+        fi;
 
-        info_text="${info_text} (${counter_all}/${counter_ok}/${counter_problem})";
+        counter_all=$(( counter_all_from_file + counter_excluded ));
+
+        info_text="${info_text} (${counter_all}/${counter_ok}/${counter_problem}/${counter_excluded})";
 
         if [[ "${counter_problem}" -gt 0 ]];
         then
