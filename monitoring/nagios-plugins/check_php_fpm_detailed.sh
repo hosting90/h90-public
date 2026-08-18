@@ -5,12 +5,14 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       10.08.2026 - Added automatization output file (output for another cron jobs for clients)
 #       08.07.2026 - Fixed exit codes for icinga2
 #       08.06.2026 - Fixed wrong pool_memory calculating
 #       30.03.2026 - First version
 
 #   variables
 tmp_file="/tmp/check_php_fpm_detailed_${1}.tmp";  #  $1 used for specified check
+automatization_output_file="/tmp/check_php_fpm_detailed_output.txt";
 output="PHP FPM ${1}";
 
 #   functions
@@ -115,6 +117,8 @@ case ${1} in
                         end_code=1;
                     fi;
                 fi;
+
+                echo "${result}" > ${automatization_output_file};
             done;
         done;
 
@@ -160,4 +164,4 @@ esac;
 
 echo ${output};
 
-exit ${end_code:-0};
+exit;
