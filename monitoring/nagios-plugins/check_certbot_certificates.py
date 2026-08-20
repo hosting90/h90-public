@@ -40,7 +40,10 @@ import yaml
 def get_certificates_info(certbot_path):
   out = subprocess.check_output("%s certificates 2>&1" % certbot_path, shell=True).decode()
   sep = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-  return out.split(sep)[1]
+  parts = out.split(sep)
+  if len(parts) < 2 or "No certificates found." in parts[1]:
+    return None
+  return parts[1]
 
 def certbot_output_to_json(co):
   # 🐷 oink oink ... 
@@ -106,6 +109,11 @@ if not certbot_path:
   sys.exit(3)
 
 data = get_certificates_info(certbot_path)
+
+if data is None:
+  print("OK: certbot manages no certificates on this server.")
+  sys.exit(0)
+
 c = certbot_output_to_json(data)
 
 perfdata = {
