@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       27.08.2026 - Excluded containers with a exited (0) code from problematic ones into separe section
 #       05.08.2026 - Added options to skipped containers, that client develops
 #       31.07.2026 - First version
 
@@ -138,15 +139,16 @@ case ${1} in
     ;;
 
     "containers")
-        info_text="${1} Containers (all/ok/problem/excluded)";
+        info_text="${1} Containers (all/ok/exited_ok/problem/excluded)";
         result="";
         end_code=0;
 
         read_values "${1}";
         
         counter_all_from_file=$(cat ${tmp_file} | grep -v "CONTAINER ID" | wc -l);
-        counter_ok=$(cat ${tmp_file} | grep -v "CONTAINEER ID" | grep "Up " | wc -l);
-        counter_problem=$(cat ${tmp_file} | grep -v "CONTAINER ID" | grep -v "Up " | wc -l);
+        counter_ok=$(cat ${tmp_file} | grep -v "CONTAINEER ID" | egrep "Up |Created " | wc -l);
+        counter_problem=$(cat ${tmp_file} | grep -v "CONTAINER ID" | grep -v "Up " | grep -v "Exited (0)" | grep -v "Created " | wc -l);
+        counter_exited_ok=$(cat ${tmp_file} | grep -v "CONTAINER_ID" | grep "Exited (0)" | wc -l)
         
         if [[ -z "${exclude}" ]];
         then
@@ -163,13 +165,13 @@ case ${1} in
 
         counter_all=$(( counter_all_from_file + counter_excluded ));
 
-        info_text="${info_text} (${counter_all}/${counter_ok}/${counter_problem}/${counter_excluded})";
+        info_text="${info_text} (${counter_all}/${counter_ok}/${counter_exited_ok}/${counter_problem}/${counter_excluded})";
 
         if [[ "${counter_problem}" -gt 0 ]];
         then
             end_code=1;
             result="problematic_container=${counter_problem};1;1;0;${counter_all}";
-            info_text="${info_text} $(cat ${tmp_file} | grep -v "CONTAINER ID" | grep -v "Up " | awk '{print $1" "$2}')";
+            info_text="${info_text} $(cat ${tmp_file} | grep -v "CONTAINER ID" | grep -v "Up " | grep -v "Exited (0)" | grep -v "Created " | awk '{print $1" "$2}')";
         else
             result="ok_tasks=${counter_ok};0;0;0;${counter_all}";
         fi;
