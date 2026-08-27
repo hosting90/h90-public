@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       27.08.2026 - Added a detailed slots retain lag check
 #       15.07.2026 - Setted up limits for idle transaction and blocked queries
 #                Change whole policy for autovacuum check
 #       09.07.2026 - Fixed wrong tmp_file name
@@ -19,6 +20,10 @@ idle_transaction_warning=5;
 idle_transaction_critical=15;
 blocked_queries_warning=10;
 blocked_queries_critical=20;
+retain_lag_bytes_warning=536870912;     # 512MB
+retain_lag_bytes_critical=1073741824;   # 1024MB 1(GB)
+retain_lag_gb_warning=$(awk "BEGIN {printf \"%.2f\", $retain_lag_bytes_warning / 1073741824}");
+retain_lag_gb_critical=$(awk "BEGIN {printf \"%.2f\", $retain_lag_bytes_critical / 1073741824}");
 
 #   functions
 function error() {
@@ -134,6 +139,13 @@ function read_values() {
             local folder_usage=$(du -sb "/var/lib/postgresql/${postgresql_major_version}/main/pg_wal/" | awk '{print $1}');
 
             echo -e "${folder_usage}|${max_size}" > ${tmp_file};
+        ;;
+        "slots")
+            su - postgres -c "psql -Atqc \"SELECT slot_name, active, active_pid, pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) AS retain_lag_bytes, pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) AS flush_lag_bytes FROM pg_replication_slots;\"" > ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Error while checking connections usage!";
+            fi;
         ;;
     esac;
 }
@@ -397,6 +409,58 @@ case ${1} in
             ;;
         esac;
     ;;
+
+    "slots")
+        info_text="${1}";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        counter_slots=$(cat ${tmp_file} | wc -l);
+        counter_active_slots=$(cat ${tmp_file} | awk -F "|" '{print $2}' | grep "t" | wc -l);
+        counter_disable_slots=$(( counter_slots - counter_active_slots ));
+
+        info_text="${info_text} (available/active/disable) (${counter_slots}/${counter_active_slots}/${counter_disable_slots})";
+
+        for slot in $(cat ${tmp_file}); do
+            slot_name=$(echo ${slot} | awk -F "|" '{print $1}')
+            retain_lag_bytes=$(echo ${slot} | awk -F "|" '{print $4}');
+            retain_lag_gb=$(awk "BEGIN {printf \"%.2f\", $retain_lag_bytes / 1073741824}");
+            if [[ "${retain_lag_bytes}" -ge ${retain_lag_bytes_warning} ]] && [[ "${retain_lag_bytes}" -lt ${retain_lag_bytes_critical} ]];
+            then
+                if [[ $end_code -ne 2 ]];
+                then
+                    end_code=1;
+                    info_text="${info_text} Slot ${slot_name} with high retain_lag (actuall ${retain_lag_gb}GB)";
+                fi;
+            elif [[ "${retain_lag_bytes}" -ge ${retain_lag_bytes_critical} ]];
+            then
+                end_code=2;
+                info_text="${info_text} Slot ${slot_name} with critical retain_lag (actuall ${retain_lag_gb}GB)";
+            fi;
+
+            result="${result} ${slot_name}_slot_retain_lag=${retain_lag_gb};${retain_lag_gb_warning};${retain_lag_gb_critical};0;";
+        done;
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                if [[ $counter_slots -eq 0 ]];
+                then
+                    output="${output} OK: No slots available";
+                else
+                    output="${output} OK: ${info_text} | ${result}";
+                fi;
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;
+    ;;    
 esac;
 
 echo ${output};
