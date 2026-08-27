@@ -142,10 +142,6 @@ function read_values() {
         ;;
         "slots")
             su - postgres -c "psql -Atqc \"SELECT slot_name, active, active_pid, pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) AS retain_lag_bytes, pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) AS flush_lag_bytes FROM pg_replication_slots;\"" > ${tmp_file};
-            if [[ $? -gt 0 ]];
-            then
-                error "Error while checking connections usage!";
-            fi;
         ;;
     esac;
 }
