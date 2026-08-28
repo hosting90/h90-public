@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       28.08.2026 - Added pool cpu usage monitoring
 #       10.08.2026 - Added automatization output file (output for another cron jobs for clients)
 #       08.07.2026 - Fixed exit codes for icinga2
 #       08.06.2026 - Fixed wrong pool_memory calculating
@@ -151,6 +152,27 @@ case ${1} in
                 fi;
             done;
         done;
+    ;;
+
+    "pool_cpu")
+        output="${output} CPU INFO (% of full CPU usage) |";
+
+        for version in $(ps aux | grep php | grep master | awk '{print $14}' | egrep -o "[0-9]\.[0-9]*"); do
+            for pool in $(ls /etc/php/${version}/fpm/pool.d/); do
+                read_values "${1}" "${version}" "${pool}";
+
+                pool_file="${tmp_file}_${pool}";
+
+                if [[ -f "${pool_file}" ]];
+                then
+                    pool_name=$(cat ${pool_file} | grep "pool:" | awk '{print $2}');
+                    cored_total=$(nproc);
+                    cpu_used_percent=$(ps aux | egrep "php-fpm: pool ${pool_name}$" | awk -v cores="$cored_total" '{sum+=$3} END {printf "%.2f%%\n", sum/cores}');
+
+                    output="${output} ${pool_name}_${version}_cpu_usage=${cpu_used_percent};50;80;0;100";
+                fi;
+            done;
+        done;    
     ;;
 
     "max_memory")
