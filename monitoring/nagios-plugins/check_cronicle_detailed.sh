@@ -58,7 +58,7 @@ function read_values() {
                 error "Error while checking actuall activity from cronicle!";
             fi;
 
-            local result=$(echo "$response" | jq --argjson start "$TODAY_START" '[.rows[] | select(.time_end >= $start)] as $today | "\($today | length)/\($today | map(select(.code==0)) | length)/\($today | map(select(.code!=0)) | length)"');
+            local result=$(echo "$response" | jq --argjson start "$TODAY_START" '[.rows[] | select(.epoch >= $start)] as $today | "\($today | length)/\($today | map(select(.code==0)) | length)/\($today | map(select(.code!=0)) | length)"');
             if [[ $? -gt 0 ]];
             then
                 error "Error while preparing output from cronicle's activity!";
@@ -88,7 +88,7 @@ case ${1} in
         then
             output="${output} OK | ${result}";
         else
-            error "${output} PROBLEM | ${result}"
+            warning "${output} PROBLEM | ${result}"
         fi;
     ;;
 
