@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       31.08.2026 - Fixed wrong state codes for helathcheck
 #       12.07.2026 - First version
 
 #   variables
@@ -136,14 +137,14 @@ case ${1} in
 
         read_values "${1}";
 
-        if [[ "$(cat ${tmp_file})" == "ready" ]];
+        if [[ "$(cat ${tmp_file})" == "true" ]];
         then
             info_text="${info_text} Healthy";
             result="${result} is_sentry_healthy=1;1;1;0;1";
         else
             info_text="${info_text} Non-healthy";
             result="${result} is_sentry_healthy=0;1;1;0;1";
-            enc_code=2;
+            end_code=2;
         fi;
 
         #   return info
