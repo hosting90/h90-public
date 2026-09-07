@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       07.09.2026 - Added internal check for nftables chain exists
 #       27.08.2026 - Excluded containers with a exited (0) code from problematic ones into separe section
 #       05.08.2026 - Added options to skipped containers, that client develops
 #       31.07.2026 - First version
@@ -268,6 +269,35 @@ case ${1} in
                 error "${output} CRITICAL: ${info_text} | ${result}";
             ;;
         esac;        
+    ;;
+
+    "firewall")
+        info_text="${1} Firewall chain check";
+        result="";
+        end_code=0;
+
+        if [[ "$(nft list ruleset | grep -i "chain DOCKER" | wc -l)" -gt 0 ]];
+        then
+            info_text="${info_text} Chains exists.";
+            result="nftables_docker_chain_exists=1;0;0;0;1";
+        else
+            info_text="${info_text} None of docker chains exists on system!";
+            result="nftables_docker_chain_exists=0;0;0;0;1";
+            end_code=2;
+        fi;
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;      
     ;;
 esac;
 
