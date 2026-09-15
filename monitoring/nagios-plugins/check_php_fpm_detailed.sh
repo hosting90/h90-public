@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       15.09.2026 - Fixed wrong socket value if is listen value inside quotation mark
 #       28.08.2026 - Added pool cpu usage monitoring
 #       10.08.2026 - Added automatization output file (output for another cron jobs for clients)
 #       08.07.2026 - Fixed exit codes for icinga2
@@ -56,7 +57,7 @@ function read_values() {
     local pool_name="${3}";
 
     local script_name=$(cat /etc/php/${version}/fpm/pool.d/${pool_name} | sed "/^;/d" | grep "pm.status_path" | awk '{print $3}');
-    local socket=$(cat /etc/php/${version}/fpm/pool.d/${pool_name} | sed "/^;/d" | grep "listen" | grep sock | awk '{print $3}');
+    local socket=$(cat /etc/php/${version}/fpm/pool.d/${pool_name} | sed "/^;/d" | grep "listen" | grep sock | awk '{print $3}' | sed 's/"//g');
 
     if [[ ! -z "${script_name}" ]] && [[ ! -z "${socket}" ]];
     then
