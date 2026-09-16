@@ -453,7 +453,7 @@ case ${1} in
         fi;        
         result="${result} haproxy_servers_maint=${counter_servers_maint};1;1;0;${counter_servers_all} haproxy_servers_drain=${counter_servers_drain};1;1;0;${counter_servers_all} haproxy_servers_nolb=${counter_servers_nolb};1;1;0;${counter_servers_all} haproxy_servers_down=${counter_servers_down};1;1;0;${counter_servers_all}";
 
-        for server_name in $(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | awk '{print $2}'); do
+        for server_name in $(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | awk '{print $3}'); do
             tmp_code=0;
             server_conn_limit=$(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | grep -w "${server_name}" | awk '{print $6}');
             server_conn_actuall=$(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | grep -w "${server_name}" | awk '{print $5}');
