@@ -303,11 +303,12 @@ case ${1} in
         fi;
         result="${result} haproxy_frontend_stop=${counter_frontend_stop};1;1;0;${counter_frontend_all}";
 
-        for frontend_name in $(cat ${tmp_file} | grep "FRONTEND" | awk '{print $2}'); do
+        while IFS= read -r line; do
             tmp_code=0;
-            frontend_conn_limit=$(cat ${tmp_file} | grep -w "FRONTEND" | grep -w "${frontend_name}" | awk '{print $6}');
-            frontend_conn_actuall=$(cat ${tmp_file} | grep -w "FRONTEND" | grep -w "${frontend_name}" | awk '{print $5}');
-            frontend_usage_percent=$(( (100 / frontend_conn_limit) * frontend_conn_actuall ));
+            frontend_name=$(echo $line | awk '{print $2}');
+            frontend_conn_limit=$(echo $line | awk '{print $6}');
+            frontend_conn_actuall=$(echo $line | awk '{print $5}');
+            frontend_usage_percent=$(( (100 / frontend_conn_limit) * frontend_conn_actuall ));            
 
             if [[ ${frontend_usage_percent} -ge 90 ]];
             then
@@ -332,8 +333,8 @@ case ${1} in
                 ;;
             esac;
 
-            result="${result} haproxy_frontend_${frontend_name}_usage=${frontend_usage_percent};75;90;0;100";
-        done;     
+            result="${result} haproxy_frontend_${frontend_name}_usage=${frontend_usage_percent};75;90;0;100";            
+        done < <(grep -w "FRONTEND" "${tmp_file}")
 
         #   return info
         case "${end_code}" in
@@ -367,10 +368,11 @@ case ${1} in
         fi;        
         result="${result} haproxy_backend_down=${counter_backend_down};1;1;0;${counter_backend_all}";
 
-        for backend_name in $(cat ${tmp_file} | grep -w "BACKEND" | awk '{print $2}'); do
+        while IFS= read -r line; do
             tmp_code=0;
-            backend_conn_limit=$(cat ${tmp_file} | grep -w "BACKEND" | grep -w "${backend_name}" | awk '{print $6}');
-            backend_conn_actuall=$(cat ${tmp_file} | grep -w "BACKEND" | grep -w "${backend_name}" | awk '{print $5}');
+            backend_name=$(echo $line | awk '{print $2}');
+            backend_conn_limit=$(echo $line | awk '{print $6}');
+            backend_conn_actuall=$(echo $line | awk '{print $5}');
             backend_usage_percent=$(( (100 / backend_conn_limit) * backend_conn_actuall ));
 
             if [[ ${backend_usage_percent} -ge 90 ]];
@@ -397,7 +399,7 @@ case ${1} in
             esac;
 
             result="${result} haproxy_backend_${backend_name}_usage=${backend_usage_percent};75;90;0;100";
-        done;   
+        done < <(grep -w "BACKEND" "${tmp_file}")
 
         #   return info
         case "${end_code}" in
@@ -453,10 +455,13 @@ case ${1} in
         fi;        
         result="${result} haproxy_servers_maint=${counter_servers_maint};1;1;0;${counter_servers_all} haproxy_servers_drain=${counter_servers_drain};1;1;0;${counter_servers_all} haproxy_servers_nolb=${counter_servers_nolb};1;1;0;${counter_servers_all} haproxy_servers_down=${counter_servers_down};1;1;0;${counter_servers_all}";
 
-        for server_name in $(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | awk '{print $3}'); do
+        while IFS= read -r line; do
             tmp_code=0;
-            server_conn_limit=$(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | grep -w "${server_name}" | awk '{print $6}');
-            server_conn_actuall=$(cat ${tmp_file} | grep -v "FRONTEND" | grep -v "BACKEND" | grep -w "${server_name}" | awk '{print $5}');
+            server_name=$(echo $line | awk '{print $3}');
+            server_conn_limit=$(echo $line | awk '{print $6}');
+            server_conn_actuall=$(echo $line | awk '{print $5}');
+            tmp_code=0;
+
             if [[ ${server_conn_limit} -eq 0 ]];
             then
                 server_usage_percent=0;
@@ -488,7 +493,7 @@ case ${1} in
             esac;
 
             result="${result} haproxy_server_${server_name}_usage=${server_usage_percent};75;90;0;100";
-        done;    
+        done < <(grep -vwE "FRONTEND|BACKEND" "${tmp_file}")
 
         #   return info
         case "${end_code}" in
@@ -511,10 +516,12 @@ case ${1} in
 
         read_values "${1}";    
 
-        for table_name in $(cat ${tmp_file} | awk '{print $3}' | awk -F "," '{print $1}'); do
-            table_size="$(cat ${tmp_file} | grep "${table_name}" | awk -F ":" '{print $4}' | awk -F "," '{print $1}')";
-            table_used="$(cat ${tmp_file} | grep "${table_name}" | awk -F ":" '{print $5}')";
-            table_usage_percent=$(( (100 / table_size) * table_used ));
+        while IFS= read -r line; do
+            tmp_code=0;
+            table_name=$(echo $line | awk '{print $3}' | awk -F "," '{print $1}');
+            table_size="$(echo $line | awk -F ":" '{print $4}' | awk -F "," '{print $1}')";
+            table_used="$(echo $line | awk -F ":" '{print $5}')";
+            table_usage_percent=$(( (100 / table_size) * table_used ));            
 
             result="${result} haproxy_table_${table_name}_usage=${table_used};;;0;${table_size} haproxy_table_${table_name}_usage_percent=${table_usage_percent};75;90;0;100";
 
@@ -530,7 +537,7 @@ case ${1} in
                     info_text="${info_text} STICK TABLE [${table_name}] higher usage (${table_usage_percent}%)";
                 fi;
             fi;
-        done;
+        done < "${tmp_file}";
 
         #   return info
         case "${end_code}" in
