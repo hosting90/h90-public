@@ -141,11 +141,10 @@ case ${1} in
         result="";        
         end_code=0;
 
-        test_output=$(haproxy_configtest 2>&1 | grep -i "alert");
-        RC=$?;
+        counter_alerts=$(haproxy_configtest 2>&1 | grep -i "alert" | wc -l);
         result="haproxy_config_errors=0;1;1;0;1";
 
-        if [[ $RC -ne 0 ]];
+        if [[ ${counter_alerts} -ne 0 ]];
         then
             end_code=2;
             info_text="${info_text} Errors on HAProxy's config found!";
