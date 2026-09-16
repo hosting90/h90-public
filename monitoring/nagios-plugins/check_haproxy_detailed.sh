@@ -67,7 +67,8 @@ function read_values() {
         ;;
 
         "stats_frontend"|"stats_backend"|"stats_servers")
-            HEADER=$(echo "show stat" | socat stdio "${haproxy_stats_socket}" | head -n1 | sed 's/^# //');
+            STAT_OUTPUT=$(echo "show stat" | socat stdio "${haproxy_stats_socket}");
+            HEADER=$(head -n1 <<< "$STAT_OUTPUT" | sed 's/^# //');
             TS=$(date +%s);
 
             if [[ -f "${tmp_file}" ]];
