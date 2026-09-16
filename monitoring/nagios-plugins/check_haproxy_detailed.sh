@@ -253,7 +253,7 @@ case ${1} in
         queue_value=$(cat ${tmp_file} | grep "^Run_queue:" | awk '{print $2}');
         idle_value=$(cat ${tmp_file} | grep "^Idle_pct:" | awk '{print $2}');
 
-        if [[ "${queue_value}" -gt 0 ]];
+        if [[ "${queue_value}" -gt 30 ]];
         then
             info_text="${info_text} Tasks queued HAproxy is under pressue (${queue_value} tasks waiting)";
             end_code=1;
