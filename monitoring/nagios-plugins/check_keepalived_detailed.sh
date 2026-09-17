@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       17.09.2026 - Added more string for checking errors
 #       16.09.2026 - First version
 
 #   variables
@@ -53,7 +54,7 @@ function read_values() {
 
     case "${cmd}" in
         "errors")
-            journalctl -u keepalived --since "${journalctl_last_minutes} min ago" --no-pager | grep -i "error" | awk -F ":" '{print $5}' > ${tmp_file};
+            journalctl -u keepalived --since "${journalctl_last_minutes} min ago" --no-pager | egrep -i "error|cant|not permitted" | awk -F ":" '{print $5}' > ${tmp_file};
             if [[ $? -gt 0 ]];
             then
                 error "Error while checking journalctl for errors!";
