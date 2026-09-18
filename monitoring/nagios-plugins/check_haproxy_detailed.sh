@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       18.09.2026 - Fixed error when no stick tables found
 #       16.09.2026 - First version
 
 #   variables
@@ -104,11 +105,20 @@ BEGIN {
         ;;
 
         "stats_table")
-            echo "show table" | socat stdio ${haproxy_stats_socket} | grep "^# table:" > ${tmp_file};
-            if [[ $? -gt 0 ]];
+            if [[ $(echo "show table" | socat stdio ${haproxy_stats_socket} | grep "^# table:" | wc -l) -eq 0 ]];
             then
-                error "Error while returning stick tables values from socket!";
-            fi;          
+                if [[ -f "${tmp_file}" ]];
+                then
+                    rm ${tmp_file};
+                fi;
+                touch ${tmp_file};
+            else
+                echo "show table" | socat stdio ${haproxy_stats_socket} | grep "^# table:" > ${tmp_file};
+                if [[ $? -gt 0 ]];
+                then
+                    error "Error while returning stick tables values from socket!";
+                fi;             
+            fi;         
         ;;
     esac;
 }
@@ -516,28 +526,34 @@ case ${1} in
 
         read_values "${1}";    
 
-        while IFS= read -r line; do
+        if [[ "$(cat ${tmp_file} | wc -l)" -eq 0 ]];
+        then
             tmp_code=0;
-            table_name=$(echo $line | awk '{print $3}' | awk -F "," '{print $1}');
-            table_size="$(echo $line | awk -F ":" '{print $4}' | awk -F "," '{print $1}')";
-            table_used="$(echo $line | awk -F ":" '{print $5}')";
-            table_usage_percent=$(( (100 / table_size) * table_used ));            
+            info_text="${info_text} None stick tables found";
+        else
+            while IFS= read -r line; do
+                tmp_code=0;
+                table_name=$(echo $line | awk '{print $3}' | awk -F "," '{print $1}');
+                table_size="$(echo $line | awk -F ":" '{print $4}' | awk -F "," '{print $1}')";
+                table_used="$(echo $line | awk -F ":" '{print $5}')";
+                table_usage_percent=$(( (100 / table_size) * table_used ));            
 
-            result="${result} haproxy_table_${table_name}_usage=${table_used};;;0;${table_size} haproxy_table_${table_name}_usage_percent=${table_usage_percent};75;90;0;100";
+                result="${result} haproxy_table_${table_name}_usage=${table_used};;;0;${table_size} haproxy_table_${table_name}_usage_percent=${table_usage_percent};75;90;0;100";
 
-            if [[ $table_usage_percent -ge 90 ]];
-            then
-                end_code=2;
-                info_text="${info_text} STICK TABLE [${table_name}] critical usage (${table_usage_percent}%)";
-            elif [[ $table_usage_percent -lt 90 ]] && [[ $table_usage_percent -ge 75 ]];
-            then
-                if [[ $end_code -ne 2 ]];
+                if [[ $table_usage_percent -ge 90 ]];
                 then
-                    end_code=1;
-                    info_text="${info_text} STICK TABLE [${table_name}] higher usage (${table_usage_percent}%)";
+                    end_code=2;
+                    info_text="${info_text} STICK TABLE [${table_name}] critical usage (${table_usage_percent}%)";
+                elif [[ $table_usage_percent -lt 90 ]] && [[ $table_usage_percent -ge 75 ]];
+                then
+                    if [[ $end_code -ne 2 ]];
+                    then
+                        end_code=1;
+                        info_text="${info_text} STICK TABLE [${table_name}] higher usage (${table_usage_percent}%)";
+                    fi;
                 fi;
-            fi;
-        done < "${tmp_file}";
+            done < "${tmp_file}";
+        fi;
 
         #   return info
         case "${end_code}" in
