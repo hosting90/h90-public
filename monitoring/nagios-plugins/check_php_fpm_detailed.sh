@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       22.09.2026 - Added a timeout value for locally socket reached limiting
 #       15.09.2026 - Fixed wrong socket value if is listen value inside quotation mark
 #       28.08.2026 - Added pool cpu usage monitoring
 #       10.08.2026 - Added automatization output file (output for another cron jobs for clients)
@@ -15,6 +16,7 @@
 #   variables
 tmp_file="/tmp/check_php_fpm_detailed_${1}.tmp";  #  $1 used for specified check
 automatization_output_file="/tmp/check_php_fpm_detailed_output.txt";
+socket_timeout="5"; # in seconds
 output="PHP FPM ${1}";
 
 #   functions
@@ -61,10 +63,10 @@ function read_values() {
 
     if [[ ! -z "${script_name}" ]] && [[ ! -z "${socket}" ]];
     then
-        SCRIPT_NAME=${script_name} SCRIPT_FILENAME=${script_name} REQUEST_METHOD=GET QUERY_STRING="" cgi-fcgi -bind -connect ${socket} > ${tmp_file}_${pool_name};
+        timeout ${socket_timeout} env SCRIPT_NAME=${script_name} SCRIPT_FILENAME=${script_name} REQUEST_METHOD=GET QUERY_STRING="" cgi-fcgi -bind -connect ${socket} > ${tmp_file}_${pool_name};
         if [[ $? -gt 0 ]];
         then
-            error "Can't readh pool [${pool_name}] stats!";
+            error "Can't reach pool [${pool_name}] stats!";
             exit 1;
         fi;
     fi;
