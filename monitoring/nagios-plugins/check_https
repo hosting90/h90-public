@@ -303,13 +303,18 @@ function checkChain() {
 	rm cert_??.pem ${host}.crt ${host}.ca.crt;
 }
 
+if [ -d '/usr/lib64/nagios/plugins/' ]; then
+    lib_version='lib64'
+else
+    lib_version='lib'
+fi
 
 # ---- SCRIPT BODY ----
 for https_host_entry in "$@"; do
     IFS=: read host warn crit note <<< "$https_host_entry"
 
 	[[ -n "$note" ]] && note_f=" (${note})"
-	result+=( "${host}${note_f}: $(/usr/lib64/nagios/plugins/check_http --sni -H "$host" -C "${warn:-4}","${crit:-2}" 2>&1)" )
+	result+=( "${host}${note_f}: $("/usr/$lib_version/nagios/plugins/check_http" --sni -H "$host" -C "${warn:-4}","${crit:-2}" 2>&1)" )
 	ret=$?
 
 	(( ret > ret_max )) && ret_max=$ret
