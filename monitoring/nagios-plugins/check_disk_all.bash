@@ -44,11 +44,14 @@ args=(
   -X tracefs
 )
 
-[[ -z "$1" ]] && args+=(-w 10% -c 5% -W 10% -K 5% -A)
-
 for arg in "$@"; do
 	IFS=: read -r disk warn crit warn_i crit_i <<< "$arg"
 
+	if [[ "$warn" == 'exclude' ]]; then
+		[[ "$disk" == 'all' ]] && { echo "Can't exclude all disks, aborting"; exit 3; }
+		excludes+=( "$disk" )
+		continue
+	fi
 	warn="${warn:-10%}"
 	crit="${crit:-5%}"
 
@@ -69,8 +72,12 @@ for arg in "$@"; do
 	${A_is_set:-false} || { args+=( -A ); A_is_set='true'; }
 
 	[[ "$disk" != 'all' ]] && args+=(-p "$disk")
-
 done
+
+# safety guard
+if ! ${A_is_set:-false}; then
+	args+=( -w 10% -c 5% -W 10% -K 5% -A )
+fi
 
 test -d /boot/efi && {
   args+=(
@@ -83,6 +90,12 @@ args+=(
 	-I '/run/docker/*'
 	-I '/sys/firmware/efi/efivars'
 )
+
+if [[ -n "${excludes[@]}" ]]; then
+	for exclude in "${excludes[@]}"; do
+		args+=( -I "$exclude" )
+	done
+fi
 
 [[ "$DEBUG" ]] && set -x
 $CHECK_DISK "${args[@]}"
