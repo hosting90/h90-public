@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       24.09.2026 - Added option to turn on warning / critical reporting of docker containers (default value off)
 #       07.09.2026 - Added internal check for nftables chain exists
 #       27.08.2026 - Excluded containers with a exited (0) code from problematic ones into separe section
 #       05.08.2026 - Added options to skipped containers, that client develops
@@ -16,6 +17,7 @@ warning_minutes_trigger=30;
 critical_minutes_trigger=60;
 output="Docker ${1}";
 exclude="${2}";
+container_reporting="${3}";
 
 #   functions
 function error() {
@@ -182,7 +184,12 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            error "${output} PROBLEM: ${info_text} | ${result}";        
+            if [[ "${container_reporting}" == "true" ]];
+            then
+                error "${output} PROBLEM: ${info_text} | ${result}";        
+            else
+                output="${output} OK: ${info_text} | ${result}";
+            fi;
         fi;
     ;;
 
