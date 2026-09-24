@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       24.09.2026 - Added option to turn on warning / critical reporting of cronicle failed jobs (default value off)
 #       28.08.2026 - First version
 
 #   variables
@@ -13,6 +14,7 @@ output="Cronicle ${1}";
 CRONICLE_URL="http://localhost:3012";
 CRONICLE_API_KEY="${2}";
 TODAY_START=$(date -d "today 00:00:00" +%s);
+FAILED_JOBS_REPOTING="${3}";
 
 #   functions
 function error() {
@@ -118,7 +120,12 @@ case ${1} in
         then
             output="${output} OK: ${info_text} | ${result}";
         else
-            error "${output} PROBLEM: ${info_text} | ${result}";        
+            if [[ "${FAILED_JOBS_REPOTING}" == "true" ]];
+            then
+                error "${output} PROBLEM: ${info_text} | ${result}";        
+            else
+                output="${output} OK: ${info_text} | ${result}";
+            fi;
         fi;
     ;;
 esac;
