@@ -440,13 +440,13 @@ case ${1} in
         counter_servers_nolb=$(cat ${tmp_file} | grep -v "BACKEND" | grep -v "FRONTEND" | grep "NOLB" | wc -l);
         counter_servers_no_check=$(cat ${tmp_file} | grep -v "BACKEND" | grep -v "FRONTEND" | grep "no check" | wc -l);
 
-        if [[ ${counter_server_maint} -gt 0 ]];
+        if [[ ${counter_servers_maint} -gt 0 ]];
         then
             end_code=1;
             info_text="${info_text} Some servers are in maintenance state";
         fi;
 
-        if [[ ${counter_server_drain} -gt 0 ]];
+        if [[ ${counter_servers_drain} -gt 0 ]];
         then
             end_code=1;
             info_text="${info_text} Some servers are in drain state";
@@ -470,7 +470,6 @@ case ${1} in
             server_name=$(echo $line | awk '{print $3}');
             server_conn_limit=$(echo $line | awk '{print $6}');
             server_conn_actuall=$(echo $line | awk '{print $5}');
-            tmp_code=0;
 
             if [[ ${server_conn_limit} -eq 0 ]];
             then
