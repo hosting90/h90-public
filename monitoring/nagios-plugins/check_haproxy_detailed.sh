@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       26.09.2026 - Fixed non-funcional conditions for stats_servers (maintenance | drain)
 #       18.09.2026 - Fixed error when no stick tables found
 #       16.09.2026 - First version
 
