@@ -5,14 +5,22 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       05.10.2026 - Disable state warning code for nopreempt type
 #       17.09.2026 - Added more string for checking errors
 #       16.09.2026 - First version
 
 #   variables
 tmp_file="/tmp/check_keepalived_detailed_${1}.tmp";     #  $1 used for specified check
+keepalived_conf_file="/etc/keepalived/keepalived.conf";
 keepalived_version=$(keepalived --version 2>&1 | head -1 | grep -oP 'v\K[0-9.]+' | head -n 1);
-keepalived_original_state=$(cat /etc/keepalived/keepalived.conf | grep -i "state" | awk '{print $2}');
-keepalived_vip_address=$(cat /etc/keepalived/keepalived.conf | grep -A 2 "virtual_ipaddress {" | grep "dev" | head -n 1 | awk '{print $1}');
+keepalived_original_state=$(cat ${keepalived_conf_file} | grep -i "state" | awk '{print $2}');
+keepalived_vip_address=$(cat ${keepalived_conf_file} | grep -A 2 "virtual_ipaddress {" | grep "dev" | head -n 1 | awk '{print $1}');
+if [[ $(cat ${keepalived_conf_file} | grep -i "nopreempt" | wc -l) -gt 0 ]];
+then
+    keepalive_nopreempt_mode=true;
+else
+    keepalive_nopreempt_mode=false;
+fi;
 journalctl_last_minutes="10";
 output="Keepalived v.${keepalived_version} ${1}";
 
@@ -129,21 +137,27 @@ case ${1} in
             if [[ "$(ip a | grep "${keepalived_vip_address}" | wc -l)" -eq 0 ]];
             then
                 end_code=2;
-                info_text="${info_text} MASTER server in BACKUP state found!";
+                info_text="${info_text} - MASTER server in BACKUP state found!";
                 result="keepalived_master_state=0;0;0;0;1";
             else
-                info_text="${info_text} MASTER server is OK.";
+                info_text="${info_text} - MASTER server is OK.";
                 result="keepalived_master_state=1;0;0;0;1";
             fi;
         else
             #   backup server
             if [[ "$(ip a | grep "${keepalived_vip_address}" | wc -l)" -gt 0 ]];
             then
-                end_code=1;
-                info_text="${info_text} BACKUP server in MASTER state found!";
-                result="keepalived_master_state=0;1;1;0;1";
+                if ${keepalive_nopreempt_mode};
+                then
+                    info_text="${info_text} - BACKUP server with a NoPreEmpt in MASTER state found.";
+                    result="keepalived_master_state=1;0;0;0;1";
+                else
+                    end_code=1;
+                    info_text="${info_text} - BACKUP server in MASTER state found!";
+                    result="keepalived_master_state=0;1;1;0;1";
+                fi;
             else
-                info_text="${info_text} BACKUP server is OK.";
+                info_text="${info_text} - BACKUP server is OK.";
                 result="keepalived_master_state=0;1;1;0;1";
             fi;            
         fi;
