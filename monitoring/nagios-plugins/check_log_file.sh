@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       06.10.2026 - Updated timestamp for usage seconds only as optional
 #       16.07.2026 - Fixed problem with a condition to trigger incident
 #               Changed validation proces of contains a error
 #       14.07.2026 - First version
@@ -88,7 +89,7 @@ function prepare_outputs() {
 
         if [[ $(cat ${tmp_log_file} | grep -iF "${string_to_search}" | wc -l) -gt 0 ]];
         then
-            local last_message="$(cat ${tmp_log_file} | grep -B 1 -iF "${string_to_search}" | tail -n 2 | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?')";
+            local last_message="$(cat ${tmp_log_file} | grep -B 1 -iF "${string_to_search}" | tail -n 2 | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?(Z|[+-][0-9]{2}:[0-9]{2})?')";
             if [[ ! -s "${tmp_log_last_seen}_${i}" ]];
             then
                 #   if file is blank
