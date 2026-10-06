@@ -6,6 +6,7 @@
 
 #   CHANGELOG:
 #       06.10.2026 - Updated timestamp for usage seconds only as optional
+#               - Added Persist mode (24h)
 #       16.07.2026 - Fixed problem with a condition to trigger incident
 #               Changed validation proces of contains a error
 #       14.07.2026 - First version
@@ -18,6 +19,8 @@ log_file="${1}";
 last_lines="${2}";
 strings_to_check="${3}";
 names_of_check="${4}";
+persist_mode="${5}"
+persist_time=$(date -d '24 hours ago' +%s);
 output="Log file checker - file ${log_file}";
 
 
@@ -105,6 +108,16 @@ function prepare_outputs() {
                 then
                     echo "${last_message}" > ${tmp_log_last_seen}_${i};
                     echo "${name_of_check}" >> ${tmp_file};
+                else
+                    # persist mode 24h
+                    if ${persist_mode}; 
+                    then
+                        if [[ $(date -d "${last_message}" +%s) > ${persist_time} ]];
+                        then
+                            echo "${last_message}" > ${tmp_log_last_seen}_${i};
+                            echo "${name_of_check}" >> ${tmp_file};
+                        fi;
+                    fi;
                 fi;
             fi;
         fi;    
