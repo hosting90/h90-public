@@ -32,22 +32,29 @@ function check_running() {
     #   inputs values
     #   $1  string  service
 
-    systemctl is-active ${SERVICE}.service >/dev/null 2>&1;
-    if [[ $? -gt 0 ]];
-    then
-        #   check if service is inactive and waiting for timer (logrotate)
-        trigger=$(systemctl show -p TriggeredBy --value ${SERVICE}.service);
-        if [[ ! -z "${trigger}" ]];
-        then
-            if systemctl is-active ${trigger} >/dev/null 2>&1;
+    state=$(systemctl is-active ${SERVICE}.service);
+    case ${state} in
+        "active")
+            return 0;
+        ;;
+
+        "inactive")
+            #   check if service is inactive and waiting for timer (logrotate)
+            trigger=$(systemctl show -p TriggeredBy --value ${SERVICE}.service);
+            if [[ ! -z "${trigger}" ]];
             then
-                return 0;
+                if systemctl is-active ${trigger} >/dev/null 2>&1;
+                then
+                    return 0;
+                fi;
             fi;
-        fi;
-        return 1;
-    else
-        return 0;
-    fi;
+            return 1;
+        ;;
+
+        *)
+            return 1;
+        ;;
+    esac;
 }
 
 #   script body
