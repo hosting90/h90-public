@@ -9,8 +9,8 @@
 
 #   variables
 tmp_file="/tmp/check_metabase_${1}.tmp";  #  $1 used for specified check
-TRIGGER_WARNING=75;
-TRIGGER_CRITICAL=90;
+TRIGGER_WARNING=90;
+TRIGGER_CRITICAL=95;
 SERVICE="metabase";
 
 output="Metabase ${1}";
