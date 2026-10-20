@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       20.10.2026 - Added another checks (evicted keys, expired keys, connections)
 #       19.10.2026 - First version
 
 #   variables
@@ -108,6 +109,48 @@ function read_values() {
             if [[ $? -gt 0 ]];
             then
                 error "Failed while check db_entries.";
+            fi;
+        ;;
+
+        "keys")
+
+            ${COMMAND} CONFIG GET maxmemory-policy | tail -n 1 > ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Failed while checking actuall maxmem policy!";
+            fi;
+
+            ${COMMAND} INFO stats | grep -E 'evicted_keys|expired_keys' >> ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Failed while checking evicted / expired keys!";
+            fi;
+        ;;
+
+        "hitratio")
+
+            ${COMMAND} INFO stats | awk -F: '/^keyspace_hits/{h=$2} /^keyspace_misses/{m=$2} END{printf "%.2f\n", h/(h+m)*100}' > ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Failed while checking the hitratio value!";
+            fi;
+        ;;
+
+        "connections")
+
+            ${COMMAND} INFO clients | grep -E 'connected_clients|maxclients' > ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Failed while checking the connections stats!";
+            fi;
+        ;;
+
+        "rejected")
+
+            ${COMMAND} INFO stats | grep rejected_connections > ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Failed while checking the rejected connections stats!";
             fi;
         ;;
     esac;
@@ -242,6 +285,110 @@ case ${1} in
         done < ${tmp_file};
 
         output="${output} OK: ${info_text} | ${result}";        
+    ;;
+
+    "keys")
+        info_text="${1}"
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        maxmem_policy=$(cat ${tmp_file} | head -n 1);
+        expired_keys=$(cat ${tmp_file} | grep "expired_keys:" | awk -F ":" '{print $2}' | egrep -o "[0-9]*");
+        evicted_keys=$(cat ${tmp_file} | grep "evicted_keys:" | awk -F ":" '{print $2}' | egrep -o "[0-9]*");
+
+        info_text="${info_text} MaxMem Policy: [${maxmem_policy}], ExpiredKeys [${expired_keys}], EvictedKeys [${evicted_keys}]";
+
+        result="expired_keys=${expired_keys};;;; evicted_keys=${evicted_keys};;;;";
+
+        output="${output} OK: ${info_text} | ${result}";    
+    ;;
+
+    "hitratio")
+        info_text="${1} (%)"
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        hitratio_value=$(cat ${tmp_file});
+
+        info_text="${info_text} [${hitratio_value}%]";
+
+        result="evicted_keys=${hitratio_value};;;0;100";
+
+        output="${output} OK: ${info_text} | ${result}";        
+    ;;
+
+    "connections")
+        info_text="${1} Usage of max clients (%)";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        actuall_connected=$(cat ${tmp_file} | grep "connected_clients:" | awk -F ":" '{print $2}' | egrep -o "[0-9]*");
+        maxclients=$(cat ${tmp_file} | grep "maxclients:" | awk -F ":" '{print $2}' | egrep -o "[0-9]*");
+
+        actuall_usage=$(( actuall_connected / maxclients ));
+
+        info_text="${info_text} [${actuall_usage}%]";
+
+        result="connections=${actuall_connected};;0; connections_usage=${actuall_usage};70;90;0;100";
+
+        if [[ ${actuall_usage} -gt 70 ]] && [[ ${actuall_usage} -lt 90 ]];
+        then
+            end_code=1;
+        elif [[ ${actuall_usage} -ge 90 ]];
+        then
+            end_code=2;
+        fi;
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;       
+    ;;
+
+    "rejected")
+        info_text="${1} Actuall rejected connections"
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        actuall_value=$(cat ${tmp_file} | grep "rejected_connections:" | awk -F ":" '{print $2}' | egrep -o "[0-9]*");
+
+        info_text="${info_text} [${actuall_value}]";
+
+        result="rejected_connections=${actuall_value};1;1;0;";
+
+        if [[ ${actuall_value} -gt 0 ]]
+        then
+            end_code=2;
+        fi;
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;          
     ;;
 esac;
 
