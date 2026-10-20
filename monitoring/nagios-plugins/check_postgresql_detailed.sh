@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       20.10.2026 - Added a complete processes check
 #       27.08.2026 - Added a detailed slots retain lag check
 #       15.07.2026 - Setted up limits for idle transaction and blocked queries
 #                Change whole policy for autovacuum check
@@ -142,6 +143,13 @@ function read_values() {
         ;;
         "slots")
             su - postgres -c "psql -Atqc \"SELECT slot_name, active, active_pid, pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) AS retain_lag_bytes, pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) AS flush_lag_bytes FROM pg_replication_slots;\"" > ${tmp_file};
+        ;;
+        "processes")
+            su - postgres -c "psql -Atqc \"SELECT backend_type, state, count(*) FROM pg_stat_activity GROUP BY backend_type, state ORDER BY backend_type;\"" > ${tmp_file};
+            if [[ $? -gt 0 ]];
+            then
+                error "Error while checking processes tasks.";
+            fi;
         ;;
     esac;
 }
@@ -457,6 +465,51 @@ case ${1} in
             ;;
         esac;
     ;;    
+
+    "processes")
+        info_text="${1}";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        #   defaults values
+        active=0;
+        idle=0;
+        idle_in_xact=0;
+        parallel=0;
+        walsender=0;
+        autovac_launcher=0;
+
+        while IFS='|' read -r backend_type state count; do
+            case "$backend_type|$state" in
+                "client backend|active")               active=$count ;;
+                "client backend|idle")                 idle=$count ;;
+                "client backend|idle in transaction"*) idle_in_xact=$((idle_in_xact + count)) ;;
+                "parallel worker|"*)                   parallel=$((parallel + count)) ;;
+                "walsender|"*)                         walsender=$((walsender + count)) ;;
+                "autovacuum launcher|"*)               autovac_launcher=$count ;;
+                *) ;;
+            esac;
+        done < "${tmp_file}";
+
+        info_text="${info_text} Active ${active}, Idle ${idle}, Idle in transaction ${idle_in_xact}, Parallel ${parallel}, WalSender ${walsender} ";
+
+        result="${result} active_processes=${active};;;; idle_processes=${idle};;;; idle_in_trans_processes=${idle_in_xact};;;; parallel_processes=${parallel};;;; walsender_processes=${walsender};;;;";
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;    
+    ;;
 esac;
 
 echo ${output};
