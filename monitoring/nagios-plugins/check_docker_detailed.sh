@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       21.10.2026 - Change method for disk_space (automatically included volumes for each containers)
 #       24.09.2026 - Added option to turn on warning / critical reporting of docker containers (default value off)
 #       07.09.2026 - Added internal check for nftables chain exists
 #       27.08.2026 - Excluded containers with a exited (0) code from problematic ones into separe section
@@ -103,17 +104,17 @@ awk '{
         ;;
 
         "disk_space")
-            docker ps -s --format "{{.Names}} {{.Size}}" | \
-awk '{
-    val=$2; unit=$2;
-    gsub(/[A-Za-z()]/, "", val);
-    gsub(/[0-9.]/, "", unit);
-    if (unit == "GB") gb=val;
-    else if (unit == "MB") gb=val/1024;
-    else if (unit == "kB") gb=val/1024/1024;
-    else gb=val/1024/1024/1024;
-    printf "%s %.4f GB\n", $1, gb;
-}' > ${tmp_file};
+            docker container inspect --size \
+  -f '{{.Name}} {{.SizeRw}}{{range .Mounts}}{{if eq .Type "volume"}} {{.Source}}{{end}}{{end}}' \
+  $(docker ps -q) | \
+while read -r name rw vols; do
+    vol_bytes=0
+    if [ -n "$vols" ]; then
+        vol_bytes=$(du -sbc $vols 2>/dev/null | tail -1 | cut -f1)
+    fi
+    awk -v n="${name#/}" -v b="$(( rw + vol_bytes ))" \
+        'BEGIN { printf "%s %.4f GB\n", n, b/1024/1024/1024 }'
+done > "${tmp_file}"
         ;;
     esac;
 }
