@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       22.10.2026 - Added graph for detailing IP | count of queries
 #       20.10.2026 - Added a complete processes check
 #       27.08.2026 - Added a detailed slots retain lag check
 #       15.07.2026 - Setted up limits for idle transaction and blocked queries
@@ -149,6 +150,13 @@ function read_values() {
             if [[ $? -gt 0 ]];
             then
                 error "Error while checking processes tasks.";
+            fi;
+        ;;
+        "queries_peer_ip")
+            su - postgres -c "psql -Atqc \"SELECT client_addr, count(*) AS cnt FROM pg_stat_activity WHERE backend_type = 'client backend' GROUP BY client_addr ORDER BY cnt DESC;\"" >> "$tmp_file";
+            if [[ $? -gt 0 ]];
+            then
+                error "Error while checking queries peer ip.";
             fi;
         ;;
     esac;
@@ -510,6 +518,37 @@ case ${1} in
             ;;
         esac;    
     ;;
+
+    "queries_peer_ip")
+        info_text="${1}";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        #   defaults values
+
+        while IFS='|' read -r ip count; do
+            if [[ -z ${ip} ]];
+            then
+                ip="system";
+            fi;
+            result="${result} ${ip}=${count};;;0;";
+        done < "${tmp_file}";
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;    
+    ;;    
 esac;
 
 echo ${output};
