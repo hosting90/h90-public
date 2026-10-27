@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       27.10.2026 - Fixed wrong output for queries_peer_ip mon
 #       22.10.2026 - Added graph for detailing IP | count of queries
 #       20.10.2026 - Added a complete processes check
 #       27.08.2026 - Added a detailed slots retain lag check
@@ -153,7 +154,7 @@ function read_values() {
             fi;
         ;;
         "queries_peer_ip")
-            su - postgres -c "psql -Atqc \"SELECT client_addr, count(*) AS cnt FROM pg_stat_activity WHERE backend_type = 'client backend' GROUP BY client_addr ORDER BY cnt DESC;\"" >> "$tmp_file";
+            su - postgres -c "psql -Atqc \"SELECT client_addr, count(*) AS cnt FROM pg_stat_activity WHERE backend_type = 'client backend' GROUP BY client_addr ORDER BY cnt DESC;\"" > "$tmp_file";
             if [[ $? -gt 0 ]];
             then
                 error "Error while checking queries peer ip.";
