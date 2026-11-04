@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       04.11.2026 - Change method for checking running (need to exists folder /etc/php/X.X/fpm/pool.d/)
 #       22.09.2026 - Added a timeout value for locally socket reached limiting
 #       15.09.2026 - Fixed wrong socket value if is listen value inside quotation mark
 #       28.08.2026 - Added pool cpu usage monitoring
@@ -78,12 +79,15 @@ case ${1} in
         end_code=0;
         result="";
         for version in $(ls /etc/php/); do
-            if check_running "${version}";
+            if [[ -d "/etc/php/${version}/fpm/pool.d" ]];
             then
-                result="${result} php_fpm_${version}=1;0;0;0;1";
-            else
-                end_code=1;
-                result="${result} php_fpm_${version}=0;0;0;0;1";
+                if check_running "${version}";
+                then
+                    result="${result} php_fpm_${version}=1;0;0;0;1";
+                else
+                    end_code=1;
+                    result="${result} php_fpm_${version}=0;0;0;0;1";
+                fi;
             fi;
         done;
 
