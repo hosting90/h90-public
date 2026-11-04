@@ -204,17 +204,18 @@ def check_imap(host, port, user, password, timeout, tls, starttls, **_):
         return classify(exc, label, 'auth', timeout)
 
     try:
-        # logout() calls sock.shutdown() itself, which sends FIN without
-        # close_notify, so unwrap first. _simple_command is private API;
-        # fall back to the public path if a future Python drops it.
-        if hasattr(conn, '_simple_command'):
-            conn._simple_command('LOGOUT')
-            conn.state = 'LOGOUT'
-            _tls_close(conn.sock)
-            conn.file.close()
-            conn.sock.close()
-        else:
-            conn.logout()
+        # Plain logout(), nothing clever. It sets state='LOGOUT' before issuing
+        # the command and swallows the abort that the server's untagged
+        # "* BYE Logging out" raises inside _command_complete. Driving
+        # _simple_command('LOGOUT') by hand to slip a close_notify in first
+        # gets that abort thrown in our face instead, which reported WARNING on
+        # every successful check.
+        #
+        # So IMAP is the one protocol here that cannot send close_notify:
+        # logout() closes the socket itself. Dovecot notes the abrupt close far
+        # more quietly than exim does, and a false WARNING every run is much
+        # worse than a log line.
+        conn.logout()
     except Exception as exc:
         _abandon(conn)
         return WARNING, f'{label} login OK but LOGOUT failed: {_short(exc)}'
