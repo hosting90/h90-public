@@ -21,8 +21,6 @@ that log noise. See _tls_close().
 Exit codes follow the plugin API: 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN.
 """
 
-from __future__ import annotations
-
 import argparse
 import os
 import socket
@@ -36,6 +34,10 @@ import yaml
 OK, WARNING, CRITICAL, UNKNOWN = 0, 1, 2, 3
 
 DEFAULT_PASS_FILE = '/root/pass.yaml'
+
+# Added in Python 3.7; None on anything older, where a bad certificate simply
+# surfaces as a plain ssl.SSLError instead.
+_SSL_CERT_ERROR = getattr(ssl, 'SSLCertVerificationError', None)
 
 # service -> (default port, which credential pair it uses)
 SERVICES = {
@@ -63,9 +65,9 @@ class Redactor:
     """
 
     def __init__(self):
-        self._secrets: list[str] = []
+        self._secrets = []
 
-    def add(self, value) -> None:
+    def add(self, value):
         if isinstance(value, str) and len(value) >= 4:
             self._secrets.append(value)
 
@@ -118,7 +120,7 @@ def classify(exc: BaseException, label: str, phase: str, timeout: float):
         return CRITICAL, f'{label} connection refused ({phase})'
     if isinstance(exc, ConnectionResetError):
         return CRITICAL, f'{label} connection reset by peer ({phase})'
-    if isinstance(exc, ssl.SSLCertVerificationError):
+    if _SSL_CERT_ERROR is not None and isinstance(exc, _SSL_CERT_ERROR):
         return CRITICAL, f'{label} certificate verification failed: {_short(exc)}'
     if isinstance(exc, ssl.SSLError):
         return CRITICAL, f'{label} TLS handshake failed: {_short(exc)}'
@@ -143,7 +145,7 @@ def check_ftp(host, port, user, password, timeout, tls, **_):
     conn = None
     try:
         conn = (FTP_TLS if tls else FTP)()
-        conn.connect(host, port, timeout=timeout)
+        conn.connect(host, port)
     except Exception as exc:
         return classify(exc, label, 'connect', timeout)
 
@@ -181,9 +183,9 @@ def check_imap(host, port, user, password, timeout, tls, starttls, **_):
     conn = None
     try:
         if tls:
-            conn = IMAP4_SSL(host, port, timeout=timeout)
+            conn = IMAP4_SSL(host, port)
         else:
-            conn = IMAP4(host, port, timeout=timeout)
+            conn = IMAP4(host, port)
             if starttls:
                 conn.starttls()
                 label = 'IMAP+STARTTLS'
@@ -227,9 +229,9 @@ def check_pop3(host, port, user, password, timeout, tls, starttls, **_):
     conn = None
     try:
         if tls:
-            conn = POP3_SSL(host, port, timeout=timeout)
+            conn = POP3_SSL(host, port)
         else:
-            conn = POP3(host, port, timeout=timeout)
+            conn = POP3(host, port)
             if starttls:
                 conn.stls()
                 label = 'POP3+STARTTLS'
@@ -270,9 +272,9 @@ def check_smtp(host, port, user, password, timeout, tls, starttls, **_):
     conn = None
     try:
         if tls:
-            conn = SMTP_SSL(host, port, timeout=timeout)
+            conn = SMTP_SSL(host, port)
         else:
-            conn = SMTP(host, port, timeout=timeout)
+            conn = SMTP(host, port)
             conn.ehlo()
             if starttls:
                 conn.starttls()
@@ -412,6 +414,13 @@ def main() -> int:
         return UNKNOWN
 
     redact.add(password)
+
+    # Every timeout in this check comes from here, exactly as the original
+    # script did it. The stdlib clients grew their own timeout= arguments at
+    # different versions (imaplib only at 3.9), so passing it per-constructor
+    # would tie this check to an interpreter newer than the one it runs on.
+    # A global default bounds every socket operation on any version.
+    socket.setdefaulttimeout(args.timeout)
 
     handler, flags = HANDLERS[args.service]
     port = args.port or default_port
