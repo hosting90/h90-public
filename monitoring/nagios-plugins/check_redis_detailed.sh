@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       11.11.2026 - Added support for redis password
 #       20.10.2026 - Added another checks (evicted keys, expired keys, connections)
 #       19.10.2026 - First version
 
@@ -13,6 +14,15 @@ tmp_file="/tmp/check_redis_${1}.tmp";  #  $1 used for specified check
 pid=$(pidof redis-server valkey-server keydb-server);
 TRIGGER_WARNING=90;
 TRIGGER_CRITICAL=95;
+PASSWORD="${2}";
+
+if [[ -n "${PASSWORD}" ]];
+then
+    export REDISCLI_AUTH="${PASSWORD}";
+else
+    unset REDISCLI_AUTH;
+fi;
+
 if [[ "$(netstat -tlnp | grep "redis" | wc -l)" -gt 0 ]];
 then
     SOFTWARE="Redis";
