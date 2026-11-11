@@ -6,11 +6,19 @@ if ! command -v systemctl; then
 fi
 
 retcode=0
+running_in_chroot=0
 for i in "$@"; do
-	active=$(systemctl is-active "$i")
+	active=$(systemctl is-active "$i" 2>&1)
+	if [[ "$active" == *"Running in chroot"* ]]; then
+		running_in_chroot=1
+		active=$(pgrep "$i")
+	fi
 	if [ "$?" -ne 0 ]; then
-	        echo -n "$i is $active; "
-	        retcode=2
+		if [ "$running_in_chroot" -eq 1 ]; then
+			active="dead"
+		fi
+        echo -n "$i is $active; "
+        retcode=2
 	fi
 done
 
