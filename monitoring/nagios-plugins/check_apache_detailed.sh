@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       14.11.2026 - Fixed wrong loading values from Apache scoreboard
 #       16.09.2026 - First version
 
 #   variables
@@ -138,11 +139,13 @@ function read_values() {
         ;;
 
         "mpm_scoreboard")
-            curl -s "http://localhost/server-status?auto" | awk -F': ' '/^Scoreboard/{print $2}' > ${tmp_file};
-            if [[ $? -gt 0 ]];
-            then
-                error "Error while loading values from server-status's scoreboard!";
-            fi;
+        set -o pipefail;
+        if ! curl -sf --max-time 10 "http://localhost/server-status?auto" \
+             | awk -F': ' '/^Scoreboard/{print $2}' > "${tmp_file}" \
+           || [[ ! -s "${tmp_file}" ]]; then
+            error "Error while loading values from server-status's scoreboard!";
+        fi;
+        set +o pipefail;
         ;;
     esac;
 }
@@ -313,14 +316,19 @@ case ${1} in
 
         read_values "${1}";
 
+        # read the scoreboard CONTENT, not the file name
+        scoreboard=$(< "${tmp_file}");
+        scoreboard="${scoreboard//[[:space:]]/}";   # strip newline/CR
+
+        total=${#scoreboard};
         for char in "${!MPM_SCOREBOARD_CHAR_MAP[@]}"; do
             name="${MPM_SCOREBOARD_CHAR_MAP[$char]}";
-            count=$(grep -o "[$char]" <<< "${tmp_file}" | wc -l);
-            MPM_SCOREBOARD["$name"]=$count;
+            only="${scoreboard//[!"$char"]/}";   # keep only this char
+            MPM_SCOREBOARD["$name"]=${#only};
         done;
 
         for key in "${!MPM_SCOREBOARD[@]}"; do
-            result="${result} ${key}=${MPM_SCOREBOARD[$key]};;;;";
+            result="${result} ${key}=${MPM_SCOREBOARD[$key]};;;0;${total}";
         done;
 
         #   return output
