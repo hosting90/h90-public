@@ -13,7 +13,7 @@
 tmp_file="/tmp/check_apache_detailed_${1}.tmp";     #  $1 used for specified check
 apache_version=$(apachectl -v | grep "version" | awk -F "/" '{print $2}' | egrep -o "[0-9\.]*");
 mpm_type=$(apachectl -V | grep MPM | awk '{print $3}');
-curl_port=$(netstat -tlnp | egrep "apache2|httpd" | awk '{print $4}' | awk -F ":" '{print $2}' | grep -v "443" | head -n 1);
+curl_port=$(netstat -tlnp | egrep "apache2|httpd" | awk '{print $4}' | sed 's/.*://' | head -n 1);
 output="Apache v.${apache_version} ${1}";
 
 #   declare MPM values (as defaults)
