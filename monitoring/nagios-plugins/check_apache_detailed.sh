@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       16.11.2026 - Added a variable for a curl server-status port (auto check this port)
 #       14.11.2026 - Fixed wrong loading values from Apache scoreboard
 #       16.09.2026 - First version
 
@@ -12,6 +13,7 @@
 tmp_file="/tmp/check_apache_detailed_${1}.tmp";     #  $1 used for specified check
 apache_version=$(apachectl -v | grep "version" | awk -F "/" '{print $2}' | egrep -o "[0-9\.]*");
 mpm_type=$(apachectl -V | grep MPM | awk '{print $3}');
+curl_port=$(netstat -tlnp | egrep "apache2|httpd" | awk '{print $4}' | awk -F ":" '{print $2}' | grep -v "443" | head -n 1);
 output="Apache v.${apache_version} ${1}";
 
 #   declare MPM values (as defaults)
@@ -119,7 +121,7 @@ function read_values() {
 
     case "${cmd}" in
         "mpm_workers")
-            curl -s "http://localhost/server-status?auto" > ${tmp_file};
+            curl -s "http://localhost:${curl_port}/server-status?auto" > ${tmp_file};
             if [[ $? -gt 0 ]];
             then
                 error "Error while loading values from server-status!";
@@ -140,7 +142,7 @@ function read_values() {
 
         "mpm_scoreboard")
         set -o pipefail;
-        if ! curl -sf --max-time 10 "http://localhost/server-status?auto" \
+        if ! curl -sf --max-time 10 "http://localhost:${curl_port}/server-status?auto" \
              | awk -F': ' '/^Scoreboard/{print $2}' > "${tmp_file}" \
            || [[ ! -s "${tmp_file}" ]]; then
             error "Error while loading values from server-status's scoreboard!";
