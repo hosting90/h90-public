@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       19.11.2026 - Fixed syntax bug for read_values function "*" vs * for everything else
 #       14.11.2026 - Added a deeply monitoring for a PHP ACCESS and PHP SLOW logs
 #       04.11.2026 - Change method for checking running (need to exists folder /etc/php/X.X/fpm/pool.d/)
 #       22.09.2026 - Added a timeout value for locally socket reached limiting
@@ -138,7 +139,7 @@ function read_values() {
             fi;
         ;;
 
-        "*")
+        *)
             if [[ ! -z "${script_name}" ]] && [[ ! -z "${socket}" ]];
             then
                 timeout ${socket_timeout} env SCRIPT_NAME=${script_name} SCRIPT_FILENAME=${script_name} REQUEST_METHOD=GET QUERY_STRING="" cgi-fcgi -bind -connect ${socket} > ${tmp_file}_${pool_name};
