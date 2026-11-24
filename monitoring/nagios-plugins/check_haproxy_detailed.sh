@@ -6,6 +6,7 @@
 
 #   CHANGELOG:
 #       24.11.2026 - Added deeply SSL certificates checks (collaborate with Claude AI)
+#           - Added check for watch for a lists versions (elements counter)
 #       26.09.2026 - Fixed non-funcional conditions for stats_servers (maintenance | drain)
 #       18.09.2026 - Fixed error when no stick tables found
 #       16.09.2026 - First version
@@ -311,6 +312,15 @@ BEGIN {
                     error "Error while returning stick tables values from socket!";
                 fi;             
             fi;         
+        ;;
+
+        "lists_stats")
+            echo "show acl" | socat stdio unix-connect:${haproxy_stats_socket} \
+                | awk '$2 ~ /\.list\)$/ && !seen[$2]++ {
+                    f=$2; gsub(/[()]/,"",f); n=split(f,p,"/")
+                    match($0,/entry_cnt=[0-9]+/)
+                    print p[n], substr($0,RSTART+10,RLENGTH-10)
+                    }' > ${tmp_file}
         ;;
     esac;
 }
@@ -767,7 +777,7 @@ case ${1} in
 
         read_values "${1}";
 
-        if [[ "$(cat ${tmp_file} | wc -l)" -eq 0 ]]       ;
+        if [[ "$(cat ${tmp_file} | wc -l)" -eq 0 ]];
         then
             end_code=0;
             info_text="${info_text} None of SSL found.";
@@ -810,6 +820,45 @@ case ${1} in
                 error "${output} CRITICAL: ${info_text} | ${result}";
             ;;
         esac; 
+    ;;
+
+    "lists_stats")
+        info_text="${1}";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        if [[ "$(cat ${tmp_file} | wc -l)" -eq 0 ]];
+        then
+            end_code=0;
+            info_text="${info_text} Non list files found.";
+        else
+            end_code=0;
+
+            info_text="${info_text} List files elements";
+
+            while IFS= read -r line; do
+                list_file=$(echo "${line}" | awk '{print $1}');
+                list_elements=$(echo "${line}" | awk '{print $2}');
+
+                info_text="${info_text} - ${list_file} ${list_elements}";
+                result="${result} ${list_file}=${list_elements};;;0;";
+            done < ${tmp_file};
+        fi;
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac;     
     ;;
 esac;
 
