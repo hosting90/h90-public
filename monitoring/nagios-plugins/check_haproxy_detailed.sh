@@ -5,6 +5,7 @@
 #   Contact: filip.langer@group.one
 
 #   CHANGELOG:
+#       24.11.2026 - Added deeply SSL certificates checks (collaborate with Claude AI)
 #       26.09.2026 - Fixed non-funcional conditions for stats_servers (maintenance | drain)
 #       18.09.2026 - Fixed error when no stick tables found
 #       16.09.2026 - First version
@@ -13,7 +14,12 @@
 tmp_file="/tmp/check_haproxy_detailed_${1}.tmp";     #  $1 used for specified check
 haproxy_version=$(haproxy -v | head -n 1 | awk '{print $3}' | egrep -o "[0-9\.]*" | head -n 1);
 haproxy_stats_socket=$(grep -i "stats socket" /etc/haproxy/haproxy.cfg | head -n 1 | awk '{print $3}');
+haproxy_confs=(/etc/haproxy/haproxy.cfg /etc/haproxy/conf.d/); # in these files / folders script checks for crt paths / certificates files
+ssl_warn_days=7;
+ssl_sclient_timeout=5;
 output="HAProxy v.${haproxy_version} ${1}";
+
+set -o pipefail;
 
 
 #   functions
@@ -45,6 +51,132 @@ function check_running() {
     fi;
 }
 
+# === MULTIPLE FUNCTIONS FOR SSL CHECKS ===
+function return_config_files() {
+    #   no inputs available
+
+    local config;
+    for config in "${haproxy_confs[@]}"; do
+        if [[ -d "${config}" ]];
+        then
+            #   directory
+            find "${config}" -maxdepth 1 -type f -name '*.conf' | sort;
+        elif [[ -f "${config}" ]];
+        then
+            #   file itself
+            echo "${config}";
+        fi;
+    done;
+}
+
+function return_bind_certs() {
+    # no inputs available
+
+    return_config_files | xargs -r awk '
+    { sub(/#.*/, "") }
+    $1 == "crt-base" { base = $2; next }
+    $1 == "bind" {
+      for (i = 3; i < NF; i++)
+        if ($i == "crt" || $i == "crt-list") {
+          p = $(i+1)
+          if (p !~ /^\// && base != "") p = base "/" p
+          print $i, p, $2
+        }
+    }';
+}
+
+function return_normalize_addr() {
+    #   input: $1 = bind address (e.g. 10.0.0.5:443, *:443, ipv6@:::443)
+    #       return easily s_client target (IPv4 / IPv6)
+
+    local a=${1#ipv4@}; a=${a#ipv6@};
+    [[ $a == unix@* || $a == abns@* || $a == /* || $a == fd@* || $a == sockpair@* ]] && return;
+
+    local port=${a##*:} host=${a%:*};
+
+    host=${host#[}; host=${host%]};
+
+    case $host in ""|"*"|0.0.0.0|::|"::0") host=$wildcard_ip ;; esac;
+
+    [[ $host == *:* ]] && host="[$host]";
+
+    echo "$host:$port";
+}
+
+function return_cert_targets() {
+    #   no inputs available
+
+    return_bind_certs | while read -r kw path addrs; do
+    local files;
+
+    case $kw in
+      crt-list)
+        files=$(grep -v '^[[:space:]]*#' "$path" 2>/dev/null | awk 'NF{print $1}');
+        ;;
+      *)
+        if [[ -d $path ]]; then
+          files=$(find "$path" -maxdepth 1 -type f \
+            ! -name '*.key' ! -name '*.ocsp' ! -name '*.issuer' ! -name '*.sctl');
+        else
+          files=$path;
+        fi ;;
+    esac;
+
+    local IFS=','; local addr_list=($addrs); unset IFS;
+    local f a t;
+
+    while read -r f; do
+      [[ -z $f ]] && continue;
+      if [[ -n $LOCAL_TARGET ]]; then
+        echo "$f $LOCAL_TARGET";
+      else
+        for a in "${addr_list[@]}"; do
+          t=$(return_normalize_addr "$a"); [[ -n $t ]] && echo "$f $t";
+        done;
+      fi;
+    done <<<"$files";
+  done | sort -u;
+}
+
+function return_cert_names() {
+    #   stdin = PEM certificate
+    #       prints CN + all DNS SANs
+
+    local pem; pem=$(cat);
+    {
+        openssl x509 -noout -subject -nameopt multiline <<<"$pem" 2>/dev/null | awk -F' = ' '/commonName/{print $2}';
+        openssl x509 -noout -ext subjectAltName <<<"$pem" 2>/dev/null | grep -oE 'DNS:[^,[:space:]]+' | cut -d: -f2;
+    } | sort -u;
+}
+
+function return_exp_state() {
+    #   stdin = PEM certificate
+    #       prints: EXPIRED / EXPIRING / OK
+
+    local pem; pem=$(cat);
+
+    if ! openssl x509 -noout -checkend 0 <<<"$pem" >/dev/null 2>&1; then
+        echo "EXPIRED";
+    elif ! openssl x509 -noout -checkend $((ssl_warn_days*86400)) <<<"$pem" >/dev/null 2>&1; then
+        echo "EXPIRING";
+    else
+        echo "VALID";
+    fi;
+}
+
+function fp() {
+    openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d= -f2;
+}
+
+function enddate() {
+    openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2;
+}
+
+function subject() {
+    openssl x509 -noout -subject 2>/dev/null | sed 's/^subject= *//';
+}
+# === END OF MULTIPLE FUNCTIONS FOR SSL CHECKS ===
+
 function read_values() {
     #   inputs values
     #   $1  string  command (check|list-backups...)
@@ -52,6 +184,65 @@ function read_values() {
     local cmd="${1}";
 
     case "${cmd}" in
+        "ssl")
+            declare -A targets order;
+            n=0;
+
+            while read -r f t; do
+                [[ -z ${targets[$f]+x} ]] && order[$((n++))]=$f;
+                targets[$f]+="$t ";
+            done < <(return_cert_targets);
+
+            for ((i = 0; i < n; i++)); do
+                f=${order[$i]};
+                echo "== $f   (bind: ${targets[$f]% })";
+
+                # ---- 1) FILE ----
+                pem=$(openssl x509 -in "$f" 2>/dev/null) || true;
+                if [[ -z $pem ]]; then
+                    printf '  %-5s %-9s cannot read/parse certificate\n' FILE ERROR;
+                    continue;
+                fi;
+
+                end=$(enddate <<<"$pem");
+                st=$(return_exp_state <<<"$pem");
+                file_fp=$(fp <<<"$pem");
+
+                printf '  %-5s %-9s %-26s %s\n' FILE "$st" "exp $end" "$(subject <<<"$pem")"
+
+                # ---- 2) LIVE: every domain x every bind address of this cert ----
+                names=$(return_cert_names <<<"$pem");
+
+                for t in ${targets[$f]}; do
+                    while read -r name; do
+                        [[ -z $name ]] && continue;
+                        sni=$name;
+                        [[ $sni == \*.* ]] && sni="wildcard-test.${sni#*.}";
+
+                        served=$(timeout "${ssl_sclient_timeout}" openssl s_client -connect "$t" -servername "$sni" \
+                                    </dev/null 2>/dev/null | openssl x509 2>/dev/null) || true;
+
+                        if [[ -z $served ]]; then
+                            printf '  %-5s %-9s %-9s %-32s %-22s no TLS answer\n' \
+                                LIVE NO-CONN "-" "$name" "$t";
+                            continue;
+                        fi;
+
+                        live_st=$(return_exp_state <<<"$served");
+                        live_end=$(enddate <<<"$served");
+
+                        if [[ $(fp <<<"$served") == "$file_fp" ]]; then
+                            printf '  %-5s %-9s %-9s %-32s %-22s exp %s\n' \
+                                LIVE MATCH "$live_st" "$name" "$t" "$live_end";
+                        else
+                            printf '  %-5s %-9s %-9s %-32s %-22s exp %s  served: %s\n' \
+                                LIVE MISMATCH "$live_st" "$name" "$t" "$live_end" "$(subject <<<"$served")";
+                        fi;
+                    done <<<"$names";
+                done;
+            done > ${tmp_file};
+        ;;
+
         "traffic")
             echo "show info" | socat stdio ${haproxy_stats_socket} | egrep "Maxconn:|CurrConns:|ConnRate:|ConnRateLimit:|SessRate:|SessRateLimit:|SslRate:|SslRateLimit:" > ${tmp_file};
             if [[ $? -gt 0 ]];
@@ -567,6 +758,58 @@ case ${1} in
                 error "${output} CRITICAL: ${info_text} | ${result}";
             ;;
         esac;             
+    ;;
+
+    "ssl")
+        info_text="${1}";
+        result="";
+        end_code=0;
+
+        read_values "${1}";
+
+        if [[ "$(cat ${tmp_file} | wc -l)" -eq 0 ]]       ;
+        then
+            end_code=0;
+            info_text="${info_text} None of SSL found.";
+        else
+            end_code=0;
+
+            counter_files=$(cat ${tmp_file} | grep "==" | wc -l);
+            counter_all=$(cat ${tmp_file} | sed "/==/d" | sed "/^$/d" | wc -l);
+            counter_valid=$(cat ${tmp_file} | sed "/==/d" | sed "/^$/d" | grep "VALID" | wc -l);
+            counter_expiring=$(cat ${tmp_file} | sed "/==/d" | sed "/^$/d" | grep "EXPIRING" | wc -l);
+            counter_expired=$(cat ${tmp_file} | sed "/==/d" | sed "/^$/d" | grep "EXPIRED" | wc -l);
+
+            info_text="${info_text} HAProxy SSL certificates (all/valid/expiring/expired) (${counter_all}/${counter_valid}/${counter_expiring}/${counter_expired})";
+            result="${result} haproxy_certs_files=${counter_files};;;0; haproxy_ssl_all=${counter_all};;;0; haproxy_ssl_valid=${counter_valid};;;0;${counter_all} haproxy_ssl_expiring=${counter_expiring};1;;0;${counter_all} haproxy_ssl_expired=${counter_expired};1;1;0;${counter_all}";
+
+            if [[ ${counter_expired} -gt 0 ]];
+            then
+                expired_certificates="$(cat ${tmp_file} | grep "EXPIRED")";
+                info_text="${info_text} Some SSL certificated Expired! (${expired_certificates})";
+                end_code=2;
+            else
+                if [[ ${counter_expiring} -gt 0 ]];
+                then
+                    expiring_certificates="$(cat ${tmp_file} | grep "EXPIRING")";
+                    info_text="${info_text} Some SSL certificated are close to expired (=< ${ssl_warn_days}) (expiring_certificates)";
+                    end_code=1;
+                fi;
+            fi;
+        fi;
+
+        #   return info
+        case "${end_code}" in
+            "0")
+                output="${output} OK: ${info_text} | ${result}";
+            ;;
+            "1")
+                warning "${output} WARNING: ${info_text} | ${result}";
+            ;;
+            *)
+                error "${output} CRITICAL: ${info_text} | ${result}";
+            ;;
+        esac; 
     ;;
 esac;
 
